@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../app.js";
-import { migrate } from "../db/index.js";
+import { migrate, run } from "../db/index.js";
 import { seedAll } from "../db/seed.js";
 
 let app: FastifyInstance;
@@ -607,5 +607,86 @@ describe("minimum notes", () => {
     expect(
       snapshot.every((q: { minNotes: number }) => typeof q.minNotes === "number"),
     ).toBe(true);
+  });
+});
+
+describe("staff and the interview record", () => {
+  let staffCookie = "";
+
+  beforeAll(async () => {
+    const login = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "sam@milieu.test", password: "password12345" },
+    });
+    staffCookie = login.headers["set-cookie"] as string;
+  });
+
+  async function startAsStaff(): Promise<string> {
+    const types = await app.inject({
+      method: "GET",
+      url: "/api/types",
+      headers: { cookie: staffCookie },
+    });
+    const started = await app.inject({
+      method: "POST",
+      url: "/api/interviews",
+      headers: { cookie: staffCookie },
+      payload: {
+        typeId: types.json()["types"][0].id,
+        candidateName: "Permissions Check",
+        position: null,
+        interviewerNames: null,
+      },
+    });
+    return started.json()["interview"].id as string;
+  }
+
+  it("lets staff cancel an interview that is still in progress", async () => {
+    const interviewId = await startAsStaff();
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/api/interviews/${interviewId}`,
+      headers: { cookie: staffCookie },
+    });
+    expect(response.statusCode).toBe(200);
+  });
+
+  it("refuses to let staff delete a completed interview", async () => {
+    const interviewId = await startAsStaff();
+    run("UPDATE interviews SET status = 'completed' WHERE id = ?", interviewId);
+
+    const asStaff = await app.inject({
+      method: "DELETE",
+      url: `/api/interviews/${interviewId}`,
+      headers: { cookie: staffCookie },
+    });
+    expect(asStaff.statusCode).toBe(403);
+
+    const asAdmin = await app.inject({
+      method: "DELETE",
+      url: `/api/interviews/${interviewId}`,
+      headers: auth(),
+    });
+    expect(asAdmin.statusCode).toBe(200);
+  });
+
+  it("refuses to let staff edit the interview documents", async () => {
+    const interviewId = await startAsStaff();
+    const response = await app.inject({
+      method: "PUT",
+      url: `/api/interviews/${interviewId}/documents/cleaned`,
+      headers: { cookie: staffCookie },
+      payload: { content: "Rewritten." },
+    });
+    expect(response.statusCode).toBe(403);
+
+    const asAdmin = await app.inject({
+      method: "PUT",
+      url: `/api/interviews/${interviewId}/documents/cleaned`,
+      headers: auth(),
+      payload: { content: "Corrected by an administrator." },
+    });
+    expect(asAdmin.statusCode).toBe(200);
   });
 });

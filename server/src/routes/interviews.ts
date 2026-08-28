@@ -8,7 +8,13 @@ import {
   startInterviewSchema,
   liveNoteRequestSchema,
 } from "@milieu/shared";
-import { badRequest, parseBody, requireUser } from "../lib/http.js";
+import {
+  badRequest,
+  forbidden,
+  parseBody,
+  requireAdmin,
+  requireUser,
+} from "../lib/http.js";
 import { audit } from "../lib/audit.js";
 import {
   deleteInterview,
@@ -172,8 +178,9 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     return { interview: getInterview(id) };
   });
 
+  /** The documents are the record of what was said, so staff cannot rewrite them. */
   app.put("/api/interviews/:id/documents/:kind", async (request) => {
-    const user = requireUser(request);
+    const user = requireAdmin(request);
     const params = z
       .object({ id: z.string().min(1), kind: z.enum(["cleaned", "report"]) })
       .parse(request.params);
@@ -186,14 +193,25 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
+  /**
+   * A draft is work in progress, so anyone can cancel one and nothing is kept.
+   * A completed interview is the record, and only an admin removes records.
+   */
   app.delete("/api/interviews/:id", async (request) => {
     const user = requireUser(request);
     const { id } = idParams.parse(request.params);
     const interview = getInterview(id);
+    if (interview.status === "completed" && user.role !== "admin") {
+      throw forbidden("Only an administrator can delete a completed interview");
+    }
     deleteInterview(id);
-    audit(user.id, "delete", "interview", id, {
-      candidate: interview.candidateName,
-    });
+    audit(
+      user.id,
+      interview.status === "draft" ? "cancel" : "delete",
+      "interview",
+      id,
+      { candidate: interview.candidateName },
+    );
     return { ok: true };
   });
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
+import { useSession } from "../lib/session";
 import type { InterviewSummary } from "../lib/types";
 import {
   Alert,
@@ -14,6 +15,7 @@ import {
 type Filter = "all" | "draft" | "completed";
 
 export function History() {
+  const { user } = useSession();
   const [interviews, setInterviews] = useState<InterviewSummary[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
@@ -149,30 +151,35 @@ export function History() {
                       {interview.redFlagCount || ""}
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <ConfirmButton
-                        label="Delete"
-                        className="btn btn--ghost btn--sm"
-                        title={`Delete the interview with ${interview.candidateName}?`}
-                        confirmLabel="Delete it"
-                        open={confirming === interview.id}
-                        setOpen={(open) =>
-                          setConfirming(open ? interview.id : null)
-                        }
-                        body={
-                          <p className="muted">
-                            This removes the notes, the documents and the
-                            evaluation for good.
-                          </p>
-                        }
-                        onConfirm={() =>
-                          void api
-                            .delete(`/api/interviews/${interview.id}`)
-                            .then(load)
-                            .catch(() =>
-                              setError("That interview could not be deleted."),
-                            )
-                        }
-                      />
+                      {/* A draft is anyone's to discard. A completed interview
+                          is the record, and only an admin deletes records. */}
+                      {user?.role === "admin" || interview.status === "draft" ? (
+                        <ConfirmButton
+                          label="Delete"
+                          className="btn btn--ghost btn--sm"
+                          title={`Delete the interview with ${interview.candidateName}?`}
+                          confirmLabel="Delete it"
+                          open={confirming === interview.id}
+                          setOpen={(open) =>
+                            setConfirming(open ? interview.id : null)
+                          }
+                          body={
+                            <p className="muted">
+                              {interview.status === "draft"
+                                ? "This discards the in-progress interview and its notes for good."
+                                : "This removes the notes, the documents and the evaluation for good."}
+                            </p>
+                          }
+                          onConfirm={() =>
+                            void api
+                              .delete(`/api/interviews/${interview.id}`)
+                              .then(load)
+                              .catch(() =>
+                                setError("That interview could not be deleted."),
+                              )
+                          }
+                        />
+                      ) : null}
                     </td>
                   </tr>
                 ))}

@@ -22,7 +22,10 @@ type Tab = "cleaned" | "report";
 export function InterviewReview() {
   const { id = "" } = useParams();
   const location = useLocation();
-  const { capabilities } = useSession();
+  const { user, capabilities } = useSession();
+  // The documents are the record of what was said, so staff read but never
+  // rewrite them. The server refuses the save too; this just hides the door.
+  const canEdit = user?.role === "admin";
 
   const [interview, setInterview] = useState<InterviewDetail | null>(null);
   const [tab, setTab] = useState<Tab>("cleaned");
@@ -264,7 +267,7 @@ export function InterviewReview() {
                     Save Changes
                   </button>
                 </>
-              ) : (
+              ) : canEdit ? (
                 <button
                   type="button"
                   className="btn btn--secondary btn--sm"
@@ -275,7 +278,7 @@ export function InterviewReview() {
                 >
                   Edit
                 </button>
-              )}
+              ) : null}
               <a
                 className="btn btn--secondary btn--sm"
                 href={`/api/interviews/${id}/documents/${tab}.pdf`}

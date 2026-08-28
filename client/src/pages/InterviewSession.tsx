@@ -19,18 +19,18 @@ import { Alert, BrandRule, Modal } from "../components/ui";
  * have stopped typing, written a meaningful amount since the last call, and
  * left enough time since the last one.
  */
-const LIVE_IDLE_MS = 5000;
+const LIVE_IDLE_MS = 3500;
 
-const SUGGEST_MIN_NEW_CHARS = 80;
-const SUGGEST_COOLDOWN_MS = 20000;
+const SUGGEST_MIN_NEW_CHARS = 40;
+const SUGGEST_COOLDOWN_MS = 10000;
 
 /**
  * The concern watch is gated looser than the follow-up. Something troubling is
  * often short ("grabbed her arm to move her"), and where a missed follow-up
  * costs a question, a missed concern costs the thing the interview is for.
  */
-const CONCERN_MIN_NEW_CHARS = 40;
-const CONCERN_COOLDOWN_MS = 10000;
+const CONCERN_MIN_NEW_CHARS = 25;
+const CONCERN_COOLDOWN_MS = 8000;
 
 const AUTOSAVE_MS = 4000;
 
@@ -186,6 +186,10 @@ export function InterviewSession() {
   const [concern, setConcern] = useState<string | null>(null);
   const [flagPrompt, setFlagPrompt] = useState<string | null>(null);
   const [flagNote, setFlagNote] = useState("");
+  const [shortPrompt, setShortPrompt] = useState(false);
+  const [finishPrompt, setFinishPrompt] = useState(false);
+  const [cancelPrompt, setCancelPrompt] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recovered, setRecovered] = useState(false);
@@ -421,20 +425,20 @@ export function InterviewSession() {
     return () => window.removeEventListener("keydown", onKey);
   }, [questions.length]);
 
-  async function finish() {
-    // Guarded here as well as on the button: finishing is reachable from two
-    // places, and a short answer leaves the evaluation nothing to judge.
-    if (shortIndexes.length > 0) {
-      setIndex(shortIndexes[0] as number);
-      setError(
-        shortIndexes.length === 1
-          ? `Question ${(shortIndexes[0] as number) + 1} still needs more written before you can finish.`
-          : `${shortIndexes.length} questions still need more written before you can finish: ${shortIndexes
-              .map((i) => i + 1)
-              .join(", ")}.`,
-      );
+  /**
+   * The finish buttons come through here first: finishing with questions
+   * unanswered or below their minimum is allowed, but never silently.
+   */
+  function requestFinish() {
+    if (unansweredCount > 0 || shortIndexes.length > 0) {
+      setFinishPrompt(true);
       return;
     }
+    void finish();
+  }
+
+  async function finish() {
+    setFinishPrompt(false);
     setFinishing(true);
     setError(null);
     try {
@@ -457,6 +461,23 @@ export function InterviewSession() {
           : "The interview could not be completed. Your notes are saved.",
       );
       setFinishing(false);
+    }
+  }
+
+  /** Discards the interview entirely. Nothing is saved, unlike finishing. */
+  async function cancelInterview() {
+    setCancelling(true);
+    try {
+      await api.delete(`/api/interviews/${id}`);
+      // Nothing left to save: stop the autosave and unload writers first, or
+      // the draft this deleted comes straight back from this device.
+      dirty.current = false;
+      clearLocalDraft(id);
+      navigate("/", { replace: true });
+    } catch {
+      setCancelPrompt(false);
+      setCancelling(false);
+      setError("The interview could not be cancelled. Your notes are still saved.");
     }
   }
 
@@ -485,6 +506,15 @@ export function InterviewSession() {
         : i,
     )
     .filter((i) => i >= 0);
+
+  // Finishing with questions untouched is ending early, and the button says
+  // so by how many, so nobody finishes early without noticing.
+  const unansweredCount = askedCount - answered;
+  const finishLabel = finishing
+    ? "Processing"
+    : unansweredCount > 0
+      ? `Finish ${unansweredCount} Question${unansweredCount === 1 ? "" : "s"} Early`
+      : "Finish Interview";
 
   return (
     <div>
@@ -697,11 +727,12 @@ export function InterviewSession() {
               <button
                 type="button"
                 className="btn btn--primary"
-                onClick={() => setIndex((i) => i + 1)}
-                disabled={currentIsShort}
+                onClick={() =>
+                  currentIsShort ? setShortPrompt(true) : setIndex((i) => i + 1)
+                }
                 title={
                   currentIsShort
-                    ? `Write at least ${question.minNotes} characters first`
+                    ? `Below the ${question.minNotes} character minimum`
                     : undefined
                 }
               >
@@ -711,15 +742,10 @@ export function InterviewSession() {
               <button
                 type="button"
                 className="btn btn--primary"
-                onClick={() => void finish()}
-                disabled={finishing || shortIndexes.length > 0}
-                title={
-                  shortIndexes.length > 0
-                    ? "Some questions still need more written"
-                    : undefined
-                }
+                onClick={requestFinish}
+                disabled={finishing}
               >
-                {finishing ? "Processing" : "Finish Interview"}
+                {finishLabel}
               </button>
             )}
           </div>
@@ -790,15 +816,10 @@ export function InterviewSession() {
           <button
             type="button"
             className="btn btn--secondary btn--sm"
-            onClick={() => void finish()}
-            disabled={finishing || shortIndexes.length > 0}
-            title={
-              shortIndexes.length > 0
-                ? "Some questions still need more written"
-                : undefined
-            }
+            onClick={requestFinish}
+            disabled={finishing}
           >
-            {finishing ? "Processing" : "Finish Interview"}
+            {finishLabel}
           </button>
           {shortIndexes.length > 0 ? (
             <div className="subtle">
@@ -806,6 +827,14 @@ export function InterviewSession() {
               {shortIndexes.length === 1 ? "" : "s"} still below the minimum.
             </div>
           ) : null}
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => setCancelPrompt(true)}
+            disabled={finishing || cancelling}
+          >
+            Cancel Interview
+          </button>
         </aside>
       </div>
 
@@ -855,6 +884,126 @@ export function InterviewSession() {
             value={flagNote}
             onChange={(e) => setFlagNote(e.target.value)}
           />
+        </Modal>
+      ) : null}
+
+      {shortPrompt ? (
+        <Modal
+          title="Not Much Written Yet"
+          onClose={() => setShortPrompt(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={() => setShortPrompt(false)}
+              >
+                Keep Writing
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={() => {
+                  setShortPrompt(false);
+                  setIndex((i) => Math.min(i + 1, questions.length - 1));
+                }}
+              >
+                Move On Anyway
+              </button>
+            </>
+          }
+        >
+          <p className="muted">
+            This answer has {written} of the {question.minNotes} characters
+            expected. A thin note leaves the interview document and the
+            evaluation little to work from.
+          </p>
+        </Modal>
+      ) : null}
+
+      {finishPrompt ? (
+        <Modal
+          title={
+            unansweredCount > 0
+              ? "Finish This Interview Early?"
+              : "Finish This Interview?"
+          }
+          onClose={() => setFinishPrompt(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={() => setFinishPrompt(false)}
+              >
+                Go Back
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={() => void finish()}
+              >
+                Finish Anyway
+              </button>
+            </>
+          }
+        >
+          <div className="stack">
+            {unansweredCount > 0 ? (
+              <p className="muted">
+                {unansweredCount} question{unansweredCount === 1 ? " has" : "s have"}{" "}
+                no answer recorded and will be left blank in the document and
+                the evaluation.
+              </p>
+            ) : null}
+            {shortIndexes.length > 0 ? (
+              <p className="muted">
+                {shortIndexes.length} answer
+                {shortIndexes.length === 1 ? " is" : "s are"} below the note
+                minimum: question{shortIndexes.length === 1 ? "" : "s"}{" "}
+                {shortIndexes
+                  .map((i) => numbers.get(questions[i]?.id ?? "") ?? i + 1)
+                  .join(", ")}
+                .
+              </p>
+            ) : null}
+            <p className="muted">
+              Finishing runs the evaluation on what is written so far. The
+              interview cannot be reopened afterwards.
+            </p>
+          </div>
+        </Modal>
+      ) : null}
+
+      {cancelPrompt ? (
+        <Modal
+          title="Cancel This Interview"
+          onClose={() => setCancelPrompt(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={() => setCancelPrompt(false)}
+                disabled={cancelling}
+              >
+                Keep Going
+              </button>
+              <button
+                type="button"
+                className="btn btn--destructive btn--sm"
+                onClick={() => void cancelInterview()}
+                disabled={cancelling}
+              >
+                {cancelling ? "Discarding" : "Discard Interview"}
+              </button>
+            </>
+          }
+        >
+          <p className="muted">
+            This throws away the interview with {interview.candidateName},
+            including every note taken. Nothing is saved, unlike finishing.
+          </p>
         </Modal>
       ) : null}
     </div>
