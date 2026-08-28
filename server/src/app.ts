@@ -53,6 +53,15 @@ export async function buildApp(): Promise<FastifyInstance> {
       if (request.url.startsWith("/api/")) {
         return reply.status(404).send({ error: "Not found" });
       }
+      // A missing asset must 404 rather than fall through. Asset filenames
+      // carry a content hash, so after a deploy a browser holding the old
+      // index.html asks for files that no longer exist. Answering those with
+      // index.html hands back HTML where a module was expected, and the page
+      // fails with a MIME type error instead of simply reloading.
+      const path = request.url.split("?")[0] ?? "";
+      if (path.startsWith("/assets/") || /\.[a-z0-9]+$/i.test(path)) {
+        return reply.status(404).send({ error: "Not found" });
+      }
       return reply.sendFile("index.html");
     });
   }

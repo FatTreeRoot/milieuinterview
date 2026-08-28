@@ -5,6 +5,7 @@ import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
 import type { InterviewDetail } from "../lib/types";
 import { Markdown } from "../components/Markdown";
+import { RichTextEditor } from "../components/RichTextEditor";
 import {
   Alert,
   BrandRule,
@@ -303,10 +304,14 @@ export function InterviewReview() {
               : "There is no evaluation report for this interview."}
           </Empty>
         ) : editing ? (
-          <textarea
-            className="doc-editor"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+          <RichTextEditor
+            // Remounts when the tab changes, so the editor reloads its content.
+            key={`${id}-${tab}`}
+            value={document.content}
+            onChange={setDraft}
+            ariaLabel={
+              tab === "cleaned" ? "Interview document" : "Evaluation report"
+            }
           />
         ) : (
           <Markdown source={document.content} />
