@@ -1,4 +1,4 @@
-import { formatScore, outcomeFor } from "@milieu/shared";
+import { formatScore, isStatement, outcomeFor, questionNumbers } from "@milieu/shared";
 import type { CleanedResponse, EvaluationResult } from "../ai/operations.js";
 import type { InterviewDetail } from "./interviews.js";
 
@@ -34,13 +34,20 @@ export function renderCleanedDocument(
   const byQuestion = new Map(cleaned.map((c) => [c.questionId, c.cleaned]));
   const byResponse = new Map(interview.responses.map((r) => [r.questionId, r]));
 
-  const sections = interview.snapshot.questions.map((question, index) => {
+  const numbers = questionNumbers(interview.snapshot.questions);
+
+  const sections = interview.snapshot.questions.map((question) => {
+    // Statements were read to the candidate rather than asked, so they are
+    // recorded as such rather than appearing as an unanswered question.
+    if (isStatement(question)) {
+      return `*Read to the candidate: ${question.text}*`;
+    }
     const response = byResponse.get(question.id);
     // Fall back to the raw notes if the cleanup pass skipped this question,
     // so a partial AI result never silently drops what was written.
     const notes = byQuestion.get(question.id) ?? response?.notes ?? "";
 
-    const parts = [`## ${index + 1}. ${question.text}`, ""];
+    const parts = [`## ${numbers.get(question.id)}. ${question.text}`, ""];
     if (response?.inputValue !== null && response?.inputValue !== undefined) {
       parts.push(`*Answer: ${formatInputValue(response.inputValue)}*`, "");
     }
@@ -74,9 +81,7 @@ export function renderReportDocument(
 ): string {
   const threshold = interview.snapshot.passThreshold;
   const outcome = outcomeFor(evaluation.score, threshold);
-  const questionNumber = new Map(
-    interview.snapshot.questions.map((q, index) => [q.id, index + 1]),
-  );
+  const questionNumber = questionNumbers(interview.snapshot.questions);
 
   const lines = [
     `# Evaluation report`,

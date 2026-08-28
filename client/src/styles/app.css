@@ -917,3 +917,13 @@ tr:last-child td {
 .jump-dot--short {
   background: var(--color-warn);
 }
+
+/* A statement the interviewer reads out. Nothing here is collected. */
+.reading-note {
+  border-left: 3px solid var(--color-border-strong);
+  background: var(--color-surface-sunken);
+  border-radius: 0 var(--radius-card) var(--radius-card) 0;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}

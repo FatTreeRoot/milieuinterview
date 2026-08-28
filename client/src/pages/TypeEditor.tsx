@@ -26,6 +26,7 @@ const KIND_LABELS: Record<InputKind, string> = {
   scale: "Rating Scale",
   checkbox_list: "Checklist",
   number: "Number",
+  statement: "Statement to read (no answer)",
 };
 
 export function TypeEditor() {
@@ -235,7 +236,17 @@ export function TypeEditor() {
         {questions.map((question, index) => (
           <div key={index} className="card stack">
             <div className="row-between">
-              <span className="question-number">Question {index + 1}</span>
+              <span className="question-number">
+              {question.inputKind === "statement"
+                ? "Statement"
+                : // Numbered the way the interviewer will see it: statements
+                  // sit in the running order but are not questions.
+                  `Question ${
+                    questions
+                      .slice(0, index + 1)
+                      .filter((q) => q.inputKind !== "statement").length
+                  }`}
+            </span>
               <div className="row">
                 <button
                   type="button"
@@ -282,9 +293,15 @@ export function TypeEditor() {
                 <select
                   className="select"
                   value={question.inputKind}
-                  onChange={(e) =>
-                    patch(index, { inputKind: e.target.value as InputKind })
-                  }
+                  onChange={(e) => {
+                    const inputKind = e.target.value as InputKind;
+                    patch(
+                      index,
+                      inputKind === "statement"
+                        ? { inputKind, minNotes: 0, answerKey: null }
+                        : { inputKind },
+                    );
+                  }}
                 >
                   {INPUT_KINDS.map((kind) => (
                     <option key={kind} value={kind}>
@@ -294,24 +311,26 @@ export function TypeEditor() {
                 </select>
               </Field>
 
-              <Field
-                label="Minimum Notes"
-                hint="Characters the interviewer must write before moving on. 0 for none."
-              >
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  max={2000}
-                  step={10}
-                  value={String(question.minNotes)}
-                  onChange={(e) =>
-                    patch(index, {
-                      minNotes: Math.max(0, Number(e.target.value) || 0),
-                    })
-                  }
-                />
-              </Field>
+              {question.inputKind === "statement" ? null : (
+                <Field
+                  label="Minimum Notes"
+                  hint="Characters the interviewer must write before moving on. 0 for none."
+                >
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    max={2000}
+                    step={10}
+                    value={String(question.minNotes)}
+                    onChange={(e) =>
+                      patch(index, {
+                        minNotes: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                  />
+                </Field>
+              )}
 
               {question.inputKind === "checkbox_list" ? (
                 <Field label="Options" hint="One per line.">
@@ -374,6 +393,13 @@ export function TypeEditor() {
               ) : null}
             </div>
 
+            {question.inputKind === "statement" ? (
+              <div className="note">
+                This is read to the candidate rather than asked. It collects no
+                answer, is never scored, and does not appear as a numbered
+                question in the interview document.
+              </div>
+            ) : (
             <Field
               label="Answer Key"
               hint="Optional. Points a strong answer covers. Used for scoring and can be shown during the interview."
@@ -387,6 +413,7 @@ export function TypeEditor() {
                 }
               />
             </Field>
+            )}
           </div>
         ))}
       </div>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { InputConfig, Question } from "@milieu/shared";
-import { meetsNoteMinimum } from "@milieu/shared";
+import { isStatement, meetsNoteMinimum, questionNumbers } from "@milieu/shared";
 import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
 import type { InterviewDetail, InterviewResponse } from "../lib/types";
@@ -405,16 +405,25 @@ export function InterviewSession() {
   if (!interview || !question) return <p className="muted">Loading</p>;
 
   const current = responses.get(question.id) ?? emptyResponse(question.id);
-  const answered = responseList.filter((r) => r.notes.trim()).length;
+  const askedCount = questions.filter((q) => !isStatement(q)).length;
+  const answered = questions.filter(
+    (q) => !isStatement(q) && (responses.get(q.id)?.notes.trim().length ?? 0) > 0,
+  ).length;
   const next = questions[index + 1];
 
   // A question is short until its notes reach the minimum set on it. Simple
   // intake questions carry a minimum of 0 and are never short.
   const written = current.notes.trim().length;
-  const currentIsShort = !meetsNoteMinimum(current.notes, question.minNotes);
+  const reading = isStatement(question);
+  const currentIsShort =
+    !reading && !meetsNoteMinimum(current.notes, question.minNotes);
+  const numbers = questionNumbers(questions);
   const shortIndexes = questions
     .map((q, i) =>
-      meetsNoteMinimum(responses.get(q.id)?.notes ?? "", q.minNotes) ? -1 : i,
+      isStatement(q) ||
+      meetsNoteMinimum(responses.get(q.id)?.notes ?? "", q.minNotes)
+        ? -1
+        : i,
     )
     .filter((i) => i >= 0);
 
@@ -455,52 +464,67 @@ export function InterviewSession() {
         <div>
           <div className="question-card">
             <div className="question-number">
-              Question {index + 1} of {questions.length}
+              {reading
+                ? "To read out"
+                : `Question ${numbers.get(question.id)} of ${askedCount}`}
             </div>
             <div className="question-text">{question.text}</div>
 
-            {question.answerKey ? (
+            {/* A statement is read out, so it collects nothing: no notes box,
+                no rating, no flag, and nothing blocking the way forward. */}
+            {reading ? (
+              <div className="reading-note">
+                Nothing to record here. Read this to the candidate, then carry
+                on.
+              </div>
+            ) : (
               <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  style={{ padding: 0, marginBottom: 10 }}
-                  onClick={() => setShowKey((s) => !s)}
-                >
-                  {showKey ? "Hide Answer Key" : "Show Answer Key"}
-                </button>
-                {showKey ? (
-                  <div className="answer-key">{question.answerKey}</div>
+                {question.answerKey ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      style={{ padding: 0, marginBottom: 10 }}
+                      onClick={() => setShowKey((s) => !s)}
+                    >
+                      {showKey ? "Hide Answer Key" : "Show Answer Key"}
+                    </button>
+                    {showKey ? (
+                      <div className="answer-key">{question.answerKey}</div>
+                    ) : null}
+                  </>
+                ) : null}
+
+                <QuestionInput
+                  question={question}
+                  value={current.inputValue}
+                  onChange={(value) => update(question.id, { inputValue: value })}
+                />
+
+                <textarea
+                  className="textarea"
+                  value={current.notes}
+                  placeholder="Notes from their answer"
+                  onChange={(e) => onNotesChange(question, e.target.value)}
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  autoFocus
+                  aria-describedby={
+                    question.minNotes > 0 ? "note-minimum" : undefined
+                  }
+                />
+
+                {question.minNotes > 0 ? (
+                  <div
+                    id="note-minimum"
+                    className={`note-count ${currentIsShort ? "note-count--short" : ""}`}
+                  >
+                    {currentIsShort
+                      ? `${question.minNotes - written} more characters needed`
+                      : `${written} characters`}
+                  </div>
                 ) : null}
               </>
-            ) : null}
-
-            <QuestionInput
-              question={question}
-              value={current.inputValue}
-              onChange={(value) => update(question.id, { inputValue: value })}
-            />
-
-            <textarea
-              className="textarea"
-              value={current.notes}
-              placeholder="Notes from their answer"
-              onChange={(e) => onNotesChange(question, e.target.value)}
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-              aria-describedby={question.minNotes > 0 ? "note-minimum" : undefined}
-            />
-
-            {question.minNotes > 0 ? (
-              <div
-                id="note-minimum"
-                className={`note-count ${currentIsShort ? "note-count--short" : ""}`}
-              >
-                {currentIsShort
-                  ? `${question.minNotes - written} more characters needed`
-                  : `${written} characters`}
-              </div>
-            ) : null}
+            )}
 
             {suggestion ? (
               <div className="suggestion">
@@ -519,6 +543,7 @@ export function InterviewSession() {
               </div>
             ) : null}
 
+            {reading ? null : (
             <div className="row-between" style={{ marginTop: 16 }}>
               <div className="row">
                 <span className="subtle">Your Rating</span>
@@ -562,6 +587,7 @@ export function InterviewSession() {
                 {current.redFlag ? "Flagged" : "Flag This Answer"}
               </button>
             </div>
+            )}
           </div>
 
           <div className="row-between" style={{ marginTop: 16 }}>
@@ -610,14 +636,14 @@ export function InterviewSession() {
             <div className="row-between" style={{ marginBottom: 8 }}>
               <span className="subtle">Progress</span>
               <span className="subtle num">
-                {answered}/{questions.length}
+                {answered}/{askedCount}
               </span>
             </div>
             <div className="progress-track">
               <div
                 className="progress-fill"
                 style={{
-                  width: `${(answered / Math.max(questions.length, 1)) * 100}%`,
+                  width: `${(answered / Math.max(askedCount, 1)) * 100}%`,
                 }}
               />
             </div>
@@ -638,7 +664,9 @@ export function InterviewSession() {
                     aria-current={i === index}
                     onClick={() => setIndex(i)}
                   >
-                    <span className="jump-index">{i + 1}</span>
+                    <span className="jump-index">
+                      {isStatement(q) ? "·" : numbers.get(q.id)}
+                    </span>
                     <span
                       className={`jump-dot ${
                         response?.redFlag

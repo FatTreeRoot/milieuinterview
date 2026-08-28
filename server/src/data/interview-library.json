@@ -282,8 +282,8 @@
       },
       {
         "text": "Explain that employment support is tailored to each person, focusing on building skills, confidence, and independence at their own pace",
-        "answerKey": "- Describes support as tailored to the individual: pace, hours, type of work and level of coaching are all set around that person\n- Focuses on building skills, confidence and independence step by step rather than expecting full readiness at the start\n- Names concrete small steps that build experience, such as volunteering, job shadowing, work experience or part time hours\n- Explains the ongoing guidance and coaching provided, including on site support and troubleshooting as issues come up\n- Reassures that transitions into the workplace are planned and monitored for safety, with employer contact maintained throughout\n- Ties the plan back to the person's own goals and ISP, and adjusts it as the person progresses or changes direction",
-        "inputKind": "text",
+        "answerKey": null,
+        "inputKind": "statement",
         "inputConfig": {},
         "minNotes": 0
       },
@@ -345,8 +345,8 @@
       },
       {
         "text": "Explain Workplace Supports and Accommodations: Discuss how supports, training, or accommodations can help the employee succeed while minimizing disruption for the employer",
-        "answerKey": "- Explains accommodations in practical, low cost terms: modified schedule, task reordering, written or visual instructions, a consistent trainer, quieter workspace, assistive tools\n- Describes job coaching as the employer's support too: coach does the initial training, is on site during the learning period, and fades as the person supported becomes independent\n- Frames supports as reducing disruption, with a single point of contact, agreed check ins, and a clear way for the supervisor to raise issues early\n- Ties accommodations to the specific job tasks and the person's identified needs rather than a generic list, and involves the person supported in deciding what is requested and disclosed\n- Listens to employer concerns respectfully, corrects misconceptions without confrontation, and suggests a trial or job shadow to show capability firsthand\n- Follows through reliably: returns calls, shows up when promised, reviews how it is going, and adjusts supports as the job changes",
-        "inputKind": "text",
+        "answerKey": null,
+        "inputKind": "statement",
         "inputConfig": {},
         "minNotes": 0
       },
@@ -1224,8 +1224,8 @@
     "questions": [
       {
         "text": "Hi, . We've scheduled an hour for this interview. Sometimes it doesn't take a full hour and we want you to know that it is not an indication of how the interview went. We will start by asking you some questions, and when we are finished feel free to ask us any questions you have. How does that sound?",
-        "answerKey": "- Confirms understanding and agrees to the format\n- Notes any time constraint or accommodation needed at the outset\n- Signals they have prepared questions for the end\n- Interviewer to confirm the candidate can hear clearly and is in a private space if remote",
-        "inputKind": "text",
+        "answerKey": null,
+        "inputKind": "statement",
         "inputConfig": {},
         "minNotes": 0
       },
@@ -1533,8 +1533,8 @@
     "questions": [
       {
         "text": "Hi, . We've scheduled an hour for this interview. Sometimes it doesn't take a full hour and we want you to know that it is not an indication of how the interview went. We will start by asking you some questions, and when we are finished feel free to ask us any questions you have. How does that sound?",
-        "answerKey": "- Confirms understanding and agrees to the format\n- Asks any clarifying question about timing or process up front\n- Presents as settled and professional; nothing to score beyond consent to proceed",
-        "inputKind": "text",
+        "answerKey": null,
+        "inputKind": "statement",
         "inputConfig": {},
         "minNotes": 0
       },
@@ -2533,8 +2533,8 @@
       },
       {
         "text": "Tell the applicant about our youth home in general and the new homes in Victoria",
-        "answerKey": "- Interviewer covers: staffed youth residential home, often single staffed shifts, awake and overnight expectations, and the new Victoria homes\n- Interviewer covers the profile of youth supported: trauma histories, attachment difficulties, behaviour and safety plans, possible substance use and elopement risk\n- Interviewer covers practical realities: shift patterns, driving and community outings, outreach component, documentation and incident reporting, training provided including Mandt and Narcan\n- Confirm the candidate's questions and their reaction to single staffing and shift demands\n- Note whether the candidate stays engaged and asks practical, youth focused questions rather than only pay and schedule",
-        "inputKind": "text",
+        "answerKey": null,
+        "inputKind": "statement",
         "inputConfig": {},
         "minNotes": 0
       },

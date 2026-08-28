@@ -156,4 +156,42 @@ export const migrations: Migration[] = [
       UPDATE questions SET min_notes = 0 WHERE input_kind = 'yes_no';
     `,
   },
+  {
+    name: "0003_statement_items",
+    sql: `
+      -- Some rows on the paper forms are not questions: a scheduling preamble,
+      -- a briefing to give the applicant, and two lines the original
+      -- extraction picked up from an answer key. They are read, not asked.
+      --
+      -- SQLite cannot alter a CHECK constraint, so the table is rebuilt to
+      -- admit the new kind. responses.question_id is a plain column with no
+      -- foreign key, so nothing cascades from dropping the old table.
+      CREATE TABLE questions_new (
+        id           TEXT PRIMARY KEY,
+        type_id      TEXT NOT NULL REFERENCES interview_types(id) ON DELETE CASCADE,
+        sort         INTEGER NOT NULL,
+        text         TEXT NOT NULL,
+        answer_key   TEXT,
+        input_kind   TEXT NOT NULL DEFAULT 'text'
+                     CHECK (input_kind IN ('text','yes_no','scale','checkbox_list','number','statement')),
+        input_config TEXT NOT NULL DEFAULT '{}',
+        min_notes    INTEGER NOT NULL DEFAULT 120
+      );
+
+      INSERT INTO questions_new (id, type_id, sort, text, answer_key, input_kind, input_config, min_notes)
+        SELECT id, type_id, sort, text, answer_key, input_kind, input_config, min_notes FROM questions;
+
+      DROP TABLE questions;
+      ALTER TABLE questions_new RENAME TO questions;
+      CREATE INDEX idx_questions_type ON questions(type_id, sort);
+
+      -- Matched on text rather than id: ids are generated per install, so a
+      -- database seeded elsewhere has different ones.
+      UPDATE questions SET input_kind = 'statement', min_notes = 0, answer_key = NULL
+       WHERE text LIKE '%scheduled an hour for this interview%'
+          OR text LIKE '%Tell the applicant about our youth home%'
+          OR text LIKE '%Explain that employment support is tailored%'
+          OR text LIKE '%Explain Workplace Supports and Accommodations%';
+    `,
+  },
 ];

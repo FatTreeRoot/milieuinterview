@@ -1,4 +1,5 @@
 import type { Question, Response, TypeSnapshot } from "@milieu/shared";
+import { isStatement, questionNumbers } from "@milieu/shared";
 import { orgContext } from "../lib/settings.js";
 
 /**
@@ -22,8 +23,13 @@ export function stablePrefix(): string {
   return `${HOUSE_RULES}\n\n${orgContext()}`;
 }
 
+/** Statements carry nothing to score, so they are left out entirely. */
+function asked(questions: Question[]): Question[] {
+  return questions.filter((q) => !isStatement(q));
+}
+
 function questionList(questions: Question[]): string {
-  return questions
+  return asked(questions)
     .map((question, index) => {
       const key = question.answerKey
         ? `\n   Answer key:\n${question.answerKey
@@ -78,9 +84,10 @@ export function cleanupUserMessage(
   responses: Response[],
 ): string {
   const byQuestion = new Map(responses.map((r) => [r.questionId, r]));
-  const blocks = snapshot.questions.map((question, index) => {
+  const numbers = questionNumbers(snapshot.questions);
+  const blocks = asked(snapshot.questions).map((question) => {
     const response = byQuestion.get(question.id);
-    return `[${question.id}] Q${index + 1}: ${question.text}\nNotes: ${
+    return `[${question.id}] Q${numbers.get(question.id)}: ${question.text}\nNotes: ${
       response?.notes?.trim() || "(no notes)"
     }`;
   });
@@ -112,9 +119,10 @@ export function evaluationUserMessage(
   responses: Response[],
 ): string {
   const byQuestion = new Map(responses.map((r) => [r.questionId, r]));
-  const blocks = snapshot.questions.map((question, index) => {
+  const numbers = questionNumbers(snapshot.questions);
+  const blocks = asked(snapshot.questions).map((question) => {
     const response = byQuestion.get(question.id);
-    const parts = [`[${question.id}] Q${index + 1}: ${question.text}`];
+    const parts = [`[${question.id}] Q${numbers.get(question.id)}: ${question.text}`];
     if (question.answerKey) parts.push(`Answer key:\n${question.answerKey}`);
     parts.push(`Candidate's answer: ${response?.notes?.trim() || "(not answered)"}`);
     if (response?.interviewerRating) {

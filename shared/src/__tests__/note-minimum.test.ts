@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_MIN_NOTES, NO_MIN_NOTES, meetsNoteMinimum } from "../index.js";
+import {
+  DEFAULT_MIN_NOTES,
+  NO_MIN_NOTES,
+  isStatement,
+  meetsNoteMinimum,
+  questionNumbers,
+} from "../index.js";
 
 describe("meetsNoteMinimum", () => {
   const long = "x".repeat(DEFAULT_MIN_NOTES);
@@ -30,5 +36,42 @@ describe("meetsNoteMinimum", () => {
   it("honours a minimum an admin has raised or lowered", () => {
     expect(meetsNoteMinimum("short answer", 10)).toBe(true);
     expect(meetsNoteMinimum("short answer", 500)).toBe(false);
+  });
+});
+
+describe("questionNumbers", () => {
+  const items = [
+    { id: "s1", inputKind: "statement" as const },
+    { id: "q1", inputKind: "text" as const },
+    { id: "q2", inputKind: "yes_no" as const },
+    { id: "s2", inputKind: "statement" as const },
+    { id: "q3", inputKind: "text" as const },
+  ];
+
+  it("numbers only the questions that are asked", () => {
+    const numbers = questionNumbers(items);
+    expect(numbers.get("q1")).toBe(1);
+    expect(numbers.get("q2")).toBe(2);
+    expect(numbers.get("q3")).toBe(3);
+  });
+
+  it("gives statements no number at all", () => {
+    const numbers = questionNumbers(items);
+    expect(numbers.has("s1")).toBe(false);
+    expect(numbers.has("s2")).toBe(false);
+  });
+
+  it("does not let a leading statement push the first question to 2", () => {
+    // The interviewer sees "Question 1" first, so the document and the
+    // report's question references have to agree.
+    expect(questionNumbers(items).get("q1")).toBe(1);
+  });
+});
+
+describe("isStatement", () => {
+  it("is true only for statements", () => {
+    expect(isStatement({ inputKind: "statement" })).toBe(true);
+    expect(isStatement({ inputKind: "text" })).toBe(false);
+    expect(isStatement({ inputKind: "yes_no" })).toBe(false);
   });
 });

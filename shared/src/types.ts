@@ -14,6 +14,10 @@ export const INPUT_KINDS = [
   "scale",
   "checkbox_list",
   "number",
+  // Not a question. Something the interviewer reads out or is briefed on,
+  // such as a preamble or an explanation to give the candidate. It collects
+  // nothing and is never scored.
+  "statement",
 ] as const;
 export type InputKind = (typeof INPUT_KINDS)[number];
 
@@ -55,6 +59,31 @@ export const DEFAULT_MIN_NOTES = 120;
 
 /** Simple intake questions are exempt: there is nothing more to write. */
 export const NO_MIN_NOTES = 0;
+
+/** True for items that are read rather than asked. */
+export function isStatement(question: { inputKind: InputKind }): boolean {
+  return question.inputKind === "statement";
+}
+
+/**
+ * Display numbers for the questions that are actually asked.
+ *
+ * Statements sit in the running order but are not numbered, so what the
+ * interviewer sees on screen matches the numbering in the document and the
+ * question references in the evaluation report.
+ */
+export function questionNumbers(
+  questions: { id: string; inputKind: InputKind }[],
+): Map<string, number> {
+  const numbers = new Map<string, number>();
+  let n = 0;
+  for (const question of questions) {
+    if (isStatement(question)) continue;
+    n += 1;
+    numbers.set(question.id, n);
+  }
+  return numbers;
+}
 
 export type Question = {
   id: string;
