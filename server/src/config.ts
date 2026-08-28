@@ -28,6 +28,15 @@ export const config = {
   isTest,
   port: Number(process.env.PORT ?? 3000),
   host: process.env.HOST ?? "0.0.0.0",
+
+  /**
+   * Coolify runs the container behind Traefik, which terminates TLS and
+   * forwards the real client address in X-Forwarded-For. Without this every
+   * request looks like it came from the proxy, and the per-IP rate limits
+   * become one bucket shared by everyone: the 10-per-5-minutes on sign-in
+   * would let a few staff lock out the rest.
+   */
+  trustProxy: isProduction && optional("TRUST_PROXY") !== "false",
   databasePath: process.env.DATABASE_PATH ?? "./data/app.db",
   sessionSecret: sessionSecret(),
 

@@ -21,6 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
+    trustProxy: config.trustProxy,
     logger: config.isTest
       ? false
       : config.isProduction
