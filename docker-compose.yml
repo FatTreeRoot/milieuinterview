@@ -1,0 +1,24 @@
+# Local check that the production image works before deploying.
+# Coolify does not use this file; it builds the Dockerfile directly.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@milieu.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD}
+      REGISTRATION_ACCESS_CODE: ${REGISTRATION_ACCESS_CODE:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      - milieu-data:/data
+    restart: unless-stopped
+
+volumes:
+  milieu-data:

@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+**/dist-types
+**/dist-types-node
+.git
+.env
+.env.*
+!.env.example
+data
+server/data
+*.db
+*.tsbuildinfo
+.claude

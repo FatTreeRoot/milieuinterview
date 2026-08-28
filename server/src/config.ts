@@ -6,6 +6,7 @@ function optional(name: string): string | undefined {
 }
 
 const isProduction = process.env.NODE_ENV === "production";
+const isTest = process.env.NODE_ENV === "test";
 
 function sessionSecret(): string {
   const configured = optional("SESSION_SECRET");
@@ -24,6 +25,7 @@ const smtpHost = optional("SMTP_HOST");
 
 export const config = {
   isProduction,
+  isTest,
   port: Number(process.env.PORT ?? 3000),
   host: process.env.HOST ?? "0.0.0.0",
   databasePath: process.env.DATABASE_PATH ?? "./data/app.db",

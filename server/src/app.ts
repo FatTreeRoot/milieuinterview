@@ -21,9 +21,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: config.isProduction
-      ? true
-      : { transport: { target: "pino-pretty", options: { colorize: true } } },
+    logger: config.isTest
+      ? false
+      : config.isProduction
+        ? true
+        : { transport: { target: "pino-pretty", options: { colorize: true } } },
     bodyLimit: 8 * 1024 * 1024,
   });
 
