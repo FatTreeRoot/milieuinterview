@@ -10,3 +10,4 @@ data/
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+server/data/
