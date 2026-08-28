@@ -71,7 +71,7 @@ export function Library() {
   return (
     <div className="page-width">
       <PageHead
-        title="Interview library"
+        title="Interview Library"
         lede="The question sets available when starting an interview. Editing one never changes an interview that has already been run."
         actions={
           <>
@@ -98,7 +98,7 @@ export function Library() {
               </>
             ) : null}
             <Link className="btn btn--primary btn--sm" to="/library/new">
-              New interview type
+              New Interview Type
             </Link>
           </>
         }
@@ -113,7 +113,7 @@ export function Library() {
           className="btn btn--ghost btn--sm"
           onClick={() => setShowArchived((s) => !s)}
         >
-          {showArchived ? "Hide archived" : "Show archived"}
+          {showArchived ? "Hide Archived" : "Show Archived"}
         </button>
       </div>
 

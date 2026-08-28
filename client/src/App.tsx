@@ -4,6 +4,7 @@ import { useTheme } from "./lib/theme";
 import { Shell } from "./components/Shell";
 import { SignIn } from "./pages/SignIn";
 import { Home } from "./pages/Home";
+import { Dashboard } from "./pages/Dashboard";
 import { StartInterview } from "./pages/StartInterview";
 import { InterviewSession } from "./pages/InterviewSession";
 import { Library } from "./pages/Library";
@@ -38,6 +39,7 @@ export function App() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/interview/new" element={<StartInterview />} />
         <Route path="/interview/:id" element={<InterviewSession />} />
         <Route path="/interview/:id/review" element={<InterviewReview />} />

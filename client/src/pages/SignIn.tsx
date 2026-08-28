@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
 import { Alert, BrandRule, Field, ThemeToggle } from "../components/ui";
+import { Lockup, PoweredBy } from "../components/Brand";
 import type { CurrentUser } from "../lib/types";
 
 type Mode = "signIn" | "register";
@@ -52,20 +53,10 @@ export function SignIn() {
   return (
     <div className="auth-screen">
       <div className="auth-card stack">
-        <div
-          className="lockup"
-          role="img"
-          aria-label="Milieu Family Services"
-          style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}
-        >
-          <img src="/milieu-rings.png" alt="" width={52} height={48} />
-          <span className="wordmark" style={{ fontSize: 24 }}>
-            Milieu
-          </span>
-        </div>
+        <Lockup height={52} to={null} />
 
         <div>
-          <h1>{registering ? "Create your account" : "Interview Assistant"}</h1>
+          <h1>{registering ? "Create Your Account" : "Interview Assistant"}</h1>
           <BrandRule />
           <p className="muted" style={{ marginTop: 10 }}>
             {registering
@@ -78,7 +69,7 @@ export function SignIn() {
 
         <form className="card stack" onSubmit={submit}>
           {registering ? (
-            <Field label="Your name" error={fields["name"]}>
+            <Field label="Your Name" error={fields["name"]}>
               <input
                 className="input"
                 value={name}
@@ -119,7 +110,7 @@ export function SignIn() {
           </Field>
 
           {registering ? (
-            <Field label="Access code" error={fields["accessCode"]}>
+            <Field label="Access Code" error={fields["accessCode"]}>
               <input
                 className="input"
                 value={accessCode}
@@ -134,8 +125,8 @@ export function SignIn() {
             {busy
               ? "Please wait"
               : registering
-                ? "Create account"
-                : "Sign in"}
+                ? "Create Account"
+                : "Sign In"}
           </button>
         </form>
 
@@ -149,12 +140,12 @@ export function SignIn() {
               setFields({});
             }}
           >
-            {registering ? "I already have an account" : "Create an account"}
+            {registering ? "I Already Have an Account" : "Create an Account"}
           </button>
           <ThemeToggle />
         </div>
 
-        <span className="powered-by">Powered by SNRGY</span>
+        <PoweredBy />
       </div>
     </div>
   );

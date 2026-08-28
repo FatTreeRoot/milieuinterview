@@ -1,33 +1,14 @@
-import { NavLink, Outlet, Link } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useSession } from "../lib/session";
 import { ThemeToggle } from "./ui";
+import { Lockup, PoweredBy } from "./Brand";
 
-/**
- * The Milieu lockup. "Milieu" is live text in the interface's own colour, not
- * part of the image, so it inverts correctly in dark mode and stays readable
- * to a screen reader. The image contributes the rings and nothing else.
- */
-function Lockup() {
-  return (
-    <Link
-      to="/"
-      className="lockup"
-      role="img"
-      aria-label="Milieu Family Services"
-    >
-      <img src="/milieu-rings.png" alt="" width={38} height={35} />
-      <span className="wordmark" style={{ fontSize: 20 }}>
-        Milieu
-      </span>
-    </Link>
-  );
-}
-
+// Starting an interview is a Home page action rather than a nav destination.
 const LINKS = [
   { to: "/", label: "Home", end: true },
-  { to: "/interview/new", label: "Start an interview", end: false },
-  { to: "/library", label: "Interview library", end: false },
-  { to: "/history", label: "Past interviews", end: false },
+  { to: "/dashboard", label: "Dashboard", end: false },
+  { to: "/library", label: "Interview Library", end: false },
+  { to: "/history", label: "Interview History", end: false },
   { to: "/settings", label: "Settings", end: false },
 ];
 
@@ -37,7 +18,7 @@ export function Shell() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <Lockup />
+        <Lockup height={40} />
 
         <nav className="nav" aria-label="Main">
           {LINKS.map((link) => (
@@ -67,13 +48,12 @@ export function Shell() {
               onClick={() => void signOut()}
               style={{ justifyContent: "flex-start", padding: 0 }}
             >
-              Sign out
+              Sign Out
             </button>
             <ThemeToggle />
           </div>
 
-          {/* SNRGY owns one line of the footer and never competes with Milieu. */}
-          <span className="powered-by">Powered by SNRGY</span>
+          <PoweredBy />
         </div>
       </aside>
 

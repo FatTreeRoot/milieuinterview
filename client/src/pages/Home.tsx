@@ -8,9 +8,9 @@ import { Empty, OutcomeBadge, PageHead, formatDate } from "../components/ui";
 
 function greeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
 }
 
 export function Home() {
@@ -37,12 +37,14 @@ export function Home() {
       <PageHead
         title={`${greeting()}, ${user?.name.split(" ")[0] ?? ""}`}
         lede="Run an interview, manage the question library, or look back at past interviews."
-        actions={
-          <Link className="btn btn--primary" to="/interview/new">
-            Start an interview
-          </Link>
-        }
       />
+
+      {/* The main thing anyone comes here to do, so it leads the page. */}
+      <div className="primary-action">
+        <Link className="btn btn--primary" to="/interview/new">
+          Start an Interview
+        </Link>
+      </div>
 
       {!capabilities.ai ? (
         <div className="banner" style={{ marginBottom: 18 }}>
@@ -53,7 +55,7 @@ export function Home() {
 
       {drafts.length > 0 ? (
         <section style={{ marginBottom: 26 }}>
-          <h2 style={{ marginBottom: 12 }}>Interviews in progress</h2>
+          <h2 style={{ marginBottom: 12 }}>Interviews in Progress</h2>
           <div className="stack">
             {drafts.map((interview) => (
               <Link
@@ -79,20 +81,22 @@ export function Home() {
 
       {stats && stats.totals.completed > 0 ? (
         <section style={{ marginBottom: 26 }}>
-          <h2 style={{ marginBottom: 12 }}>At a glance</h2>
+          <div className="row-between" style={{ marginBottom: 12 }}>
+            <h2>At a Glance</h2>
+            <Link className="btn btn--secondary btn--sm" to="/dashboard">
+              Dashboard
+            </Link>
+          </div>
           <div className="grid-3">
             <div className="stat">
               <div className="value">{stats.totals.completed}</div>
-              <div className="label">Interviews completed</div>
+              <div className="label">Interviews Completed</div>
             </div>
             <div className="stat">
               <div className="value">
-                {Math.round(
-                  (stats.totals.passed / stats.totals.completed) * 100,
-                )}
-                %
+                {Math.round((stats.totals.passed / stats.totals.completed) * 100)}%
               </div>
-              <div className="label">Above threshold</div>
+              <div className="label">Above Threshold</div>
             </div>
             <div className="stat">
               <div className="value">
@@ -100,7 +104,7 @@ export function Home() {
                   ? "-"
                   : formatScore(stats.totals.averageScore)}
               </div>
-              <div className="label">Average score</div>
+              <div className="label">Average Score</div>
             </div>
           </div>
         </section>
@@ -108,9 +112,9 @@ export function Home() {
 
       <section>
         <div className="row-between" style={{ marginBottom: 12 }}>
-          <h2>Recent interviews</h2>
+          <h2>Recent Interviews</h2>
           <Link className="btn btn--secondary btn--sm" to="/history">
-            See all
+            See All
           </Link>
         </div>
 

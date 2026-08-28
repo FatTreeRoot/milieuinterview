@@ -14,9 +14,9 @@ type EditableQuestion = {
 };
 
 const KIND_LABELS: Record<InputKind, string> = {
-  text: "Notes only",
-  yes_no: "Yes or no",
-  scale: "Rating scale",
+  text: "Notes Only",
+  yes_no: "Yes or No",
+  scale: "Rating Scale",
   checkbox_list: "Checklist",
   number: "Number",
 };
@@ -131,7 +131,7 @@ export function TypeEditor() {
   return (
     <div className="page-width">
       <PageHead
-        title={id ? "Edit interview type" : "New interview type"}
+        title={id ? "Edit Interview Type" : "New Interview Type"}
         lede={
           imported
             ? "Imported from a Word document. Check the questions and answer keys before saving."
@@ -176,7 +176,7 @@ export function TypeEditor() {
           />
         </Field>
         <Field
-          label="Pass threshold"
+          label="Pass Threshold"
           hint="Out of 10. Scores within 0.5 of it are flagged as borderline."
         >
           <input
@@ -209,7 +209,7 @@ export function TypeEditor() {
             ])
           }
         >
-          Add question
+          Add Question
         </button>
       </div>
 
@@ -260,7 +260,7 @@ export function TypeEditor() {
             />
 
             <div className="grid-2">
-              <Field label="Input type">
+              <Field label="Input Type">
                 <select
                   className="select"
                   value={question.inputKind}
@@ -338,7 +338,7 @@ export function TypeEditor() {
             </div>
 
             <Field
-              label="Answer key"
+              label="Answer Key"
               hint="Optional. Points a strong answer covers. Used for scoring and can be shown during the interview."
             >
               <textarea

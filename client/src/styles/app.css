@@ -795,3 +795,47 @@ tr:last-child td {
 .icon-btn svg {
   display: block;
 }
+
+/* Four across for the dashboard's headline figures. */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.grid-4 > * {
+  min-width: 0;
+}
+
+/* Legend swatch. Always sits next to its label, never alone: colour is a
+   reinforcement here, not the carrier of meaning. */
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+
+/* Pages that read better centred in the content area rather than pinned
+   left. The sidebar is outside this, so it stays put. */
+.page-centred {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+/* The primary action on the home page, directly under the header. */
+.primary-action {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .grid-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

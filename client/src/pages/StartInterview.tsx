@@ -10,7 +10,10 @@ export function StartInterview() {
   const [typeId, setTypeId] = useState("");
   const [candidateName, setCandidateName] = useState("");
   const [position, setPosition] = useState("");
-  const [interviewerNames, setInterviewerNames] = useState("");
+  // Interviews here are usually run by a panel, so this is a list from the
+  // start. It is stored as one string so exports and past records stay
+  // readable without a migration.
+  const [interviewers, setInterviewers] = useState<string[]>([""]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -24,18 +27,25 @@ export function StartInterview() {
 
   const selected = types.find((t) => t.id === typeId) ?? null;
 
+  function setInterviewer(index: number, value: string) {
+    setInterviewers((current) =>
+      current.map((name, i) => (i === index ? value : name)),
+    );
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
+      const named = interviewers.map((n) => n.trim()).filter(Boolean);
       const result = await api.post<{ interview: InterviewDetail }>(
         "/api/interviews",
         {
           typeId,
           candidateName,
           position: position.trim() || null,
-          interviewerNames: interviewerNames.trim() || null,
+          interviewerNames: named.length > 0 ? named.join(", ") : null,
         },
       );
       navigate(`/interview/${result.interview.id}`);
@@ -50,9 +60,9 @@ export function StartInterview() {
   }
 
   return (
-    <div className="page-width" style={{ maxWidth: 720 }}>
+    <div className="page-centred">
       <PageHead
-        title="Start an interview"
+        title="Start an Interview"
         lede="Choose the interview type, then note who you are meeting."
       />
 
@@ -67,7 +77,7 @@ export function StartInterview() {
         </div>
       ) : (
         <form className="card stack" onSubmit={submit}>
-          <Field label="Interview type">
+          <Field label="Interview Type">
             <select
               className="select"
               value={typeId}
@@ -92,7 +102,7 @@ export function StartInterview() {
             </div>
           ) : null}
 
-          <Field label="Candidate name">
+          <Field label="Candidate Name">
             <input
               className="input"
               value={candidateName}
@@ -109,23 +119,81 @@ export function StartInterview() {
             />
           </Field>
 
-          <Field
-            label="Interviewers"
-            hint="Optional. Everyone in the room, for the record."
-          >
-            <input
-              className="input"
-              value={interviewerNames}
-              onChange={(e) => setInterviewerNames(e.target.value)}
-            />
-          </Field>
+          <div className="field">
+            <label>Interviewers</label>
+            <div className="stack" style={{ gap: 8 }}>
+              {interviewers.map((name, index) => (
+                <div key={index} className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+                  <input
+                    className="input"
+                    value={name}
+                    placeholder={
+                      index === 0 ? "Name" : `Interviewer ${index + 1}`
+                    }
+                    onChange={(e) => setInterviewer(index, e.target.value)}
+                  />
+                  {interviewers.length > 1 ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost icon-btn"
+                      aria-label={`Remove interviewer ${index + 1}`}
+                      title="Remove"
+                      onClick={() =>
+                        setInterviewers((current) =>
+                          current.filter((_, i) => i !== index),
+                        )
+                      }
+                    >
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h14" />
+                      </svg>
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <div>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={() => setInterviewers((current) => [...current, ""])}
+                style={{ marginTop: 8 }}
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add Interviewer
+              </button>
+            </div>
+            <span className="hint">
+              Optional. Everyone on the panel, for the record.
+            </span>
+          </div>
 
           <button
             className="btn btn--primary"
             type="submit"
             disabled={busy || !typeId}
           >
-            {busy ? "Starting" : "Begin interview"}
+            {busy ? "Starting" : "Begin Interview"}
           </button>
         </form>
       )}

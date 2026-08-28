@@ -443,7 +443,7 @@ export function InterviewSession() {
                   style={{ padding: 0, marginBottom: 10 }}
                   onClick={() => setShowKey((s) => !s)}
                 >
-                  {showKey ? "Hide answer key" : "Show answer key"}
+                  {showKey ? "Hide Answer Key" : "Show Answer Key"}
                 </button>
                 {showKey ? (
                   <div className="answer-key">{question.answerKey}</div>
@@ -485,7 +485,7 @@ export function InterviewSession() {
 
             <div className="row-between" style={{ marginTop: 16 }}>
               <div className="row">
-                <span className="subtle">Your rating</span>
+                <span className="subtle">Your Rating</span>
                 <div className="rating">
                   {[1, 2, 3, 4, 5].map((value) => (
                     <button
@@ -523,7 +523,7 @@ export function InterviewSession() {
                   }
                 }}
               >
-                {current.redFlag ? "Flagged" : "Flag this answer"}
+                {current.redFlag ? "Flagged" : "Flag This Answer"}
               </button>
             </div>
           </div>
@@ -543,7 +543,7 @@ export function InterviewSession() {
                 className="btn btn--primary"
                 onClick={() => setIndex((i) => i + 1)}
               >
-                Next question
+                Next Question
               </button>
             ) : (
               <button
@@ -552,7 +552,7 @@ export function InterviewSession() {
                 onClick={() => void finish()}
                 disabled={finishing}
               >
-                {finishing ? "Processing" : "Finish interview"}
+                {finishing ? "Processing" : "Finish Interview"}
               </button>
             )}
           </div>
@@ -622,7 +622,7 @@ export function InterviewSession() {
             onClick={() => void finish()}
             disabled={finishing}
           >
-            {finishing ? "Processing" : "Finish interview"}
+            {finishing ? "Processing" : "Finish Interview"}
           </button>
         </aside>
       </div>
@@ -636,7 +636,7 @@ export function InterviewSession() {
 
       {flagPrompt ? (
         <Modal
-          title="Flag this answer"
+          title="Flag This Answer"
           onClose={() => setFlagPrompt(null)}
           footer={
             <>
@@ -658,7 +658,7 @@ export function InterviewSession() {
                   setFlagPrompt(null);
                 }}
               >
-                Flag it
+                Flag It
               </button>
             </>
           }

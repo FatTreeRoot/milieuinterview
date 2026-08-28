@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import { formatScore } from "@milieu/shared";
 import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
 import type {
   AccessCode,
   AdminUser,
   AuditEntry,
-  Stats,
   UsageMonth,
   UsageRow,
 } from "../lib/types";
@@ -19,7 +17,7 @@ import {
   formatDate,
 } from "../components/ui";
 
-type Tab = "account" | "stats" | "codes" | "users" | "ai" | "audit";
+type Tab = "account" | "codes" | "users" | "ai" | "audit";
 
 export function Settings() {
   const { user } = useSession();
@@ -27,12 +25,11 @@ export function Settings() {
   const [tab, setTab] = useState<Tab>("account");
 
   const tabs = ([
-    { key: "account", label: "Your account", adminOnly: false },
-    { key: "stats", label: "Hiring stats", adminOnly: false },
-    { key: "codes", label: "Access codes", adminOnly: true },
+    { key: "account", label: "Your Account", adminOnly: false },
+    { key: "codes", label: "Access Codes", adminOnly: true },
     { key: "users", label: "People", adminOnly: true },
-    { key: "ai", label: "AI and retention", adminOnly: true },
-    { key: "audit", label: "Activity log", adminOnly: true },
+    { key: "ai", label: "AI and Retention", adminOnly: true },
+    { key: "audit", label: "Activity Log", adminOnly: true },
   ] satisfies { key: Tab; label: string; adminOnly: boolean }[]).filter(
     (t) => !t.adminOnly || isAdmin,
   );
@@ -66,7 +63,6 @@ export function Settings() {
       </div>
 
       {tab === "account" ? <AccountPanel /> : null}
-      {tab === "stats" ? <StatsPanel /> : null}
       {tab === "codes" && isAdmin ? <AccessCodesPanel /> : null}
       {tab === "users" && isAdmin ? <UsersPanel /> : null}
       {tab === "ai" && isAdmin ? <AiPanel /> : null}
@@ -103,7 +99,7 @@ function AccountPanel() {
   return (
     <div className="stack">
       <div className="card">
-        <h2 style={{ marginBottom: 10 }}>Signed in as</h2>
+        <h2 style={{ marginBottom: 10 }}>Signed In As</h2>
         <div>{user?.name}</div>
         <div className="subtle">{user?.email}</div>
         <div className="subtle">
@@ -112,10 +108,10 @@ function AccountPanel() {
       </div>
 
       <div className="card stack">
-        <h2>Change your password</h2>
+        <h2>Change Your Password</h2>
         {error ? <Alert>{error}</Alert> : null}
         {notice ? <div className="note">{notice}</div> : null}
-        <Field label="Current password" error={fields["currentPassword"]}>
+        <Field label="Current Password" error={fields["currentPassword"]}>
           <input
             className="input"
             type="password"
@@ -125,7 +121,7 @@ function AccountPanel() {
           />
         </Field>
         <Field
-          label="New password"
+          label="New Password"
           hint="At least 10 characters."
           error={fields["newPassword"]}
         >
@@ -144,108 +140,8 @@ function AccountPanel() {
             onClick={() => void change()}
             disabled={!currentPassword || !newPassword}
           >
-            Change password
+            Change Password
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatsPanel() {
-  const [stats, setStats] = useState<Stats | null>(null);
-
-  useEffect(() => {
-    void api
-      .get<{ stats: Stats }>("/api/stats")
-      .then((r) => setStats(r.stats))
-      .catch(() => undefined);
-  }, []);
-
-  if (!stats) return <p className="muted">Loading</p>;
-  if (stats.totals.completed === 0) {
-    return (
-      <div className="card">
-        <Empty>No completed interviews to report on yet.</Empty>
-      </div>
-    );
-  }
-
-  const busiest = Math.max(...stats.byMonth.map((m) => m.count), 1);
-
-  return (
-    <div className="stack">
-      <div className="note">
-        Where an interviewer entered their own score, that score is used here
-        instead of the AI's.
-      </div>
-
-      <div className="grid-3">
-        <div className="stat">
-          <div className="value">{stats.totals.completed}</div>
-          <div className="label">Completed</div>
-        </div>
-        <div className="stat">
-          <div className="value">{stats.totals.passed}</div>
-          <div className="label">Above threshold</div>
-        </div>
-        <div className="stat">
-          <div className="value">
-            {stats.totals.averageScore === null
-              ? "-"
-              : formatScore(stats.totals.averageScore)}
-          </div>
-          <div className="label">Average score</div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2 style={{ marginBottom: 14 }}>Interviews by month</h2>
-        {stats.byMonth.map((month) => (
-          <div key={month.month} className="bar-row">
-            <span className="muted num">{month.month}</span>
-            <span className="bar-track">
-              <span
-                className="bar-fill"
-                style={{ width: `${(month.count / busiest) * 100}%` }}
-              />
-            </span>
-            <span className="num muted">
-              {month.passed}/{month.count}
-            </span>
-          </div>
-        ))}
-        <div className="subtle" style={{ marginTop: 8 }}>
-          The number on the right is how many were above threshold.
-        </div>
-      </div>
-
-      <div className="card card--flush">
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Interview type</th>
-                <th className="num">Run</th>
-                <th className="num">Above threshold</th>
-                <th className="num">Average</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.byType.map((row) => (
-                <tr key={row.typeName}>
-                  <td>{row.typeName}</td>
-                  <td className="num">{row.count}</td>
-                  <td className="num">{row.passed}</td>
-                  <td className="num">
-                    {row.averageScore === null
-                      ? "-"
-                      : formatScore(row.averageScore)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
@@ -283,7 +179,7 @@ function AccessCodesPanel() {
 
       <div className="card row" style={{ alignItems: "flex-end" }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <Field label="New code label" hint="What this code is for.">
+          <Field label="New Code Label" hint="What this code is for.">
             <input
               className="input"
               value={label}
@@ -306,7 +202,7 @@ function AccessCodesPanel() {
               .catch(() => setError("That code could not be created."))
           }
         >
-          Create code
+          Create Code
         </button>
       </div>
 
@@ -549,7 +445,7 @@ function AiPanel() {
       ) : null}
 
       <div className="card stack">
-        <h2>Agency context</h2>
+        <h2>Agency Context</h2>
         <p className="muted">
           A short summary of Milieu sent with every AI request so the model
           understands the work and the language used. Keeping it brief keeps the
@@ -567,13 +463,13 @@ function AiPanel() {
             className="btn btn--primary btn--sm"
             onClick={() => void save({ orgContext }, "Agency context saved.")}
           >
-            Save context
+            Save Context
           </button>
         </div>
       </div>
 
       <div className="card stack">
-        <h2>Keeping candidate data</h2>
+        <h2>Keeping Candidate Data</h2>
         <Field
           label="Delete completed interviews after"
           hint="Months. Leave empty to keep everything indefinitely. Interviews still in progress are never removed automatically."
@@ -611,7 +507,7 @@ function AiPanel() {
 
       <div className="card">
         <div className="row-between" style={{ marginBottom: 12 }}>
-          <h2>AI spend</h2>
+          <h2>AI Spend</h2>
           <span className="score">${total.toFixed(2)} to date</span>
         </div>
         {usage.length === 0 ? (
@@ -624,7 +520,7 @@ function AiPanel() {
                   <th>Feature</th>
                   <th>Model</th>
                   <th className="num">Calls</th>
-                  <th className="num">Cached in</th>
+                  <th className="num">Cached In</th>
                   <th className="num">Cost</th>
                 </tr>
               </thead>
@@ -679,7 +575,7 @@ function AuditPanel() {
               <tr>
                 <th>When</th>
                 <th>Who</th>
-                <th>Did what</th>
+                <th>Did What</th>
                 <th>To</th>
               </tr>
             </thead>

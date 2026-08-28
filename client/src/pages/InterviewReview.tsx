@@ -160,13 +160,13 @@ export function InterviewReview() {
         <div className="card" style={{ marginBottom: 18 }}>
           <div className="grid-3">
             <div>
-              <div className="subtle">AI score</div>
+              <div className="subtle">AI Score</div>
               <div className="score" style={{ fontSize: 22 }}>
                 {formatScore(interview.aiScore)}
               </div>
             </div>
             <div>
-              <div className="subtle">Pass threshold</div>
+              <div className="subtle">Pass Threshold</div>
               <div className="score" style={{ fontSize: 22 }}>
                 {interview.threshold === null
                   ? "-"
@@ -174,7 +174,7 @@ export function InterviewReview() {
               </div>
             </div>
             <Field
-              label="Your score"
+              label="Your Score"
               hint="Optional. Used instead of the AI score in reporting."
             >
               <div className="row">
@@ -229,7 +229,7 @@ export function InterviewReview() {
               setEditing(false);
             }}
           >
-            Interview document
+            Interview Document
           </button>
           <button
             type="button"
@@ -239,7 +239,7 @@ export function InterviewReview() {
               setEditing(false);
             }}
           >
-            Evaluation report
+            Evaluation Report
           </button>
         </div>
 
@@ -260,7 +260,7 @@ export function InterviewReview() {
                     className="btn btn--primary btn--sm"
                     onClick={() => void saveDocument()}
                   >
-                    Save changes
+                    Save Changes
                   </button>
                 </>
               ) : (
@@ -315,7 +315,7 @@ export function InterviewReview() {
 
       <div className="row" style={{ marginTop: 18 }}>
         <Link className="btn btn--secondary btn--sm" to="/history">
-          Back to past interviews
+          Back to Interview History
         </Link>
         <Link className="btn btn--ghost btn--sm" to="/">
           Home
@@ -324,7 +324,7 @@ export function InterviewReview() {
 
       {emailOpen ? (
         <Modal
-          title="Email these documents"
+          title="Email These Documents"
           onClose={() => setEmailOpen(false)}
           footer={
             <>
@@ -351,7 +351,7 @@ export function InterviewReview() {
               This sends candidate information outside the app. The send is
               recorded in the audit log.
             </div>
-            <Field label="Send to">
+            <Field label="Send To">
               <input
                 className="input"
                 type="email"

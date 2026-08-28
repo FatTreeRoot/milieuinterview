@@ -51,7 +51,7 @@ export function History() {
   return (
     <div className="page-width">
       <PageHead
-        title="Past interviews"
+        title="Interview History"
         lede="Every interview, with its documents and evaluation."
         actions={
           <a className="btn btn--secondary btn--sm" href="/api/interviews.csv">
@@ -85,7 +85,7 @@ export function History() {
               ? "All"
               : option === "completed"
                 ? "Completed"
-                : "In progress"}
+                : "In Progress"}
           </button>
         ))}
       </div>
@@ -135,7 +135,7 @@ export function History() {
                     <td>
                       {interview.status === "draft" ? (
                         <span className="badge badge--neutral">
-                          In progress
+                          In Progress
                         </span>
                       ) : (
                         <OutcomeBadge
