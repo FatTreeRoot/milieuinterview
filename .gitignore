@@ -4,12 +4,18 @@ dist/
 .env
 .env.*
 !.env.example
-data/
+
+# Runtime database. Anchored to the repository root: an unanchored "data/"
+# also matches server/src/data, which is seed content that must be committed.
+/data/
+/server/data/
 *.db
+*.db-wal
+*.db-shm
 *.db-journal
+*.backup
+*.backup-*
+
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
-server/data/
-data/*.backup*
-*.backup
