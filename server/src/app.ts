@@ -48,7 +48,21 @@ export async function buildApp(): Promise<FastifyInstance> {
   const clientDist = join(here, "..", "..", "client", "dist");
   if (config.isProduction && existsSync(clientDist)) {
     const fastifyStatic = (await import("@fastify/static")).default;
-    await app.register(fastifyStatic, { root: clientDist, wildcard: false });
+    await app.register(fastifyStatic, {
+      root: clientDist,
+      wildcard: false,
+      setHeaders(reply, path) {
+        // Asset filenames carry a content hash, so a given name always has the
+        // same contents and can be cached indefinitely. index.html must not
+        // be: it is what points at the current asset names, and a stale copy
+        // asks for files a deploy has already replaced.
+        if (path.endsWith("index.html")) {
+          reply.header("Cache-Control", "no-cache");
+        } else if (path.includes("assets")) {
+          reply.header("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      },
+    });
     app.setNotFoundHandler((request, reply) => {
       if (request.url.startsWith("/api/")) {
         return reply.status(404).send({ error: "Not found" });

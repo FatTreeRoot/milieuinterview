@@ -5,8 +5,6 @@ import type {
   AccessCode,
   AdminUser,
   AuditEntry,
-  UsageMonth,
-  UsageRow,
 } from "../lib/types";
 import {
   Alert,
@@ -397,8 +395,6 @@ function AiPanel() {
   const { capabilities } = useSession();
   const [orgContext, setOrgContext] = useState("");
   const [retention, setRetention] = useState("");
-  const [usage, setUsage] = useState<UsageRow[]>([]);
-  const [months, setMonths] = useState<UsageMonth[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -412,13 +408,6 @@ function AiPanel() {
         setRetention(r.retentionMonths === null ? "" : String(r.retentionMonths));
       })
       .catch(() => setError("Settings could not be loaded."));
-    void api
-      .get<{ byFeature: UsageRow[]; byMonth: UsageMonth[] }>("/api/admin/usage")
-      .then((r) => {
-        setUsage(r.byFeature);
-        setMonths(r.byMonth);
-      })
-      .catch(() => undefined);
   }, []);
 
   async function save(body: Record<string, unknown>, message: string) {
@@ -430,8 +419,6 @@ function AiPanel() {
       setError("That could not be saved.");
     }
   }
-
-  const total = usage.reduce((sum, row) => sum + (row.cost_usd ?? 0), 0);
 
   return (
     <div className="stack">
@@ -505,51 +492,6 @@ function AiPanel() {
         </Field>
       </div>
 
-      <div className="card">
-        <div className="row-between" style={{ marginBottom: 12 }}>
-          <h2>AI Spend</h2>
-          <span className="score">${total.toFixed(2)} to date</span>
-        </div>
-        {usage.length === 0 ? (
-          <Empty>No AI calls yet.</Empty>
-        ) : (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Feature</th>
-                  <th>Model</th>
-                  <th className="num">Calls</th>
-                  <th className="num">Cached In</th>
-                  <th className="num">Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usage.map((row) => (
-                  <tr key={`${row.feature}-${row.model}`}>
-                    <td>{row.feature.replace(/_/g, " ")}</td>
-                    <td className="muted">{row.model}</td>
-                    <td className="num">{row.calls}</td>
-                    <td className="num muted">
-                      {(row.cache_read_tokens ?? 0).toLocaleString()}
-                    </td>
-                    <td className="num">${(row.cost_usd ?? 0).toFixed(3)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {months.length > 0 ? (
-          <div className="subtle" style={{ marginTop: 12 }}>
-            This month:{" "}
-            <span className="num">
-              ${(months[0]?.cost_usd ?? 0).toFixed(2)}
-            </span>{" "}
-            across {months[0]?.calls ?? 0} calls.
-          </div>
-        ) : null}
-      </div>
     </div>
   );
 }
