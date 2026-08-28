@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { ZodSchema } from "zod";
+import type { TypeOf, ZodTypeAny } from "zod";
 import { currentUser, type CurrentUser } from "./sessions.js";
 
 export class HttpError extends Error {
@@ -31,8 +31,16 @@ export function requireAdmin(request: FastifyRequest): CurrentUser {
   return user;
 }
 
-/** Validates a request body, turning zod issues into a 400 the UI can show. */
-export function parseBody<T>(schema: ZodSchema<T>, body: unknown): T {
+/**
+ * Validates a request body, turning zod issues into a 400 the UI can show.
+ *
+ * Returns the schema's output type, so fields carrying a `.default()` arrive
+ * as required rather than possibly undefined.
+ */
+export function parseBody<S extends ZodTypeAny>(
+  schema: S,
+  body: unknown,
+): TypeOf<S> {
   const result = schema.safeParse(body);
   if (!result.success) {
     const fields: Record<string, string> = {};
@@ -42,7 +50,7 @@ export function parseBody<T>(schema: ZodSchema<T>, body: unknown): T {
     }
     throw badRequest("Please check the highlighted fields", fields);
   }
-  return result.data;
+  return result.data as TypeOf<S>;
 }
 
 export function sendError(reply: FastifyReply, error: unknown): FastifyReply {
