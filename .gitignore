@@ -11,3 +11,5 @@ data/
 .DS_Store
 Thumbs.db
 server/data/
+data/*.backup*
+*.backup
