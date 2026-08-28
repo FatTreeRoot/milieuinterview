@@ -3,13 +3,17 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "workspaces": ["shared", "server", "client"],
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
   "scripts": {
     "dev": "concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "build": "npm run build -w shared && npm run build -w client && npm run build -w server",
-    "start": "node server/dist/index.js",
+    "start": "node --env-file-if-exists=.env server/dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc -b"
   },
@@ -18,5 +22,7 @@
     "typescript": "~5.7.3",
     "vitest": "^3.0.5"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

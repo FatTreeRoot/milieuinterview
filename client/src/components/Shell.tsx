@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import { useSession } from "../lib/session";
-import { useTheme } from "../lib/theme";
+import { ThemeToggle } from "./ui";
 
 /**
  * The Milieu lockup. "Milieu" is live text in the interface's own colour, not
@@ -33,7 +33,6 @@ const LINKS = [
 
 export function Shell() {
   const { user, signOut } = useSession();
-  const { theme, toggle } = useTheme();
 
   return (
     <div className="shell">
@@ -54,15 +53,6 @@ export function Shell() {
         </nav>
 
         <div className="sidebar-foot">
-          <button
-            type="button"
-            className="btn btn--secondary btn--sm"
-            onClick={toggle}
-            style={{ width: "100%" }}
-          >
-            {theme === "dark" ? "Light theme" : "Dark theme"}
-          </button>
-
           <div>
             <div style={{ color: "var(--color-text)", fontWeight: 600 }}>
               {user?.name}
@@ -70,14 +60,17 @@ export function Shell() {
             <div>{user?.role === "admin" ? "Administrator" : "Staff"}</div>
           </div>
 
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm"
-            onClick={() => void signOut()}
-            style={{ justifyContent: "flex-start", padding: 0 }}
-          >
-            Sign out
-          </button>
+          <div className="row-between">
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => void signOut()}
+              style={{ justifyContent: "flex-start", padding: 0 }}
+            >
+              Sign out
+            </button>
+            <ThemeToggle />
+          </div>
 
           {/* SNRGY owns one line of the footer and never competes with Milieu. */}
           <span className="powered-by">Powered by SNRGY</span>

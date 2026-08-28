@@ -97,23 +97,53 @@ export async function seedFirstAdmin(log: {
   log.info(`Created the first admin account for ${email}.`);
 }
 
-/** Seeds one access code so the first staff member can register. */
+/**
+ * Makes sure there is a way for the first staff member to register.
+ *
+ * When REGISTRATION_ACCESS_CODE is set it is treated as authoritative: the
+ * code is created if missing and reactivated if it was switched off, every
+ * boot. An operator who sets that variable expects that code to work, and
+ * before this it did nothing whenever any other code already existed.
+ *
+ * With the variable unset, one code is generated on first boot and logged,
+ * and later boots leave the table alone so codes an admin has turned off in
+ * the app stay off.
+ */
 export function seedAccessCode(log: { info: (msg: string) => void }): void {
-  const existing = get("SELECT COUNT(*) AS count FROM access_codes");
-  if ((existing?.["count"] as number) > 0) return;
+  const configured = config.registrationAccessCode;
 
-  const code = config.registrationAccessCode ?? accessCode();
+  if (configured) {
+    const existing = get("SELECT id, active FROM access_codes WHERE code = ?", configured);
+    if (!existing) {
+      run(
+        `INSERT INTO access_codes (id, code, label, active, uses, created_by, created_at)
+         VALUES (?, ?, ?, 1, 0, NULL, ?)`,
+        id(),
+        configured,
+        "Set by REGISTRATION_ACCESS_CODE",
+        now(),
+      );
+      log.info("Registration access code from the environment is ready.");
+    } else if (existing["active"] !== 1) {
+      run("UPDATE access_codes SET active = 1 WHERE id = ?", existing["id"]);
+      log.info("Reactivated the registration access code from the environment.");
+    }
+    return;
+  }
+
+  const count = get("SELECT COUNT(*) AS count FROM access_codes");
+  if ((count?.["count"] as number) > 0) return;
+
+  const generated = accessCode();
   run(
     `INSERT INTO access_codes (id, code, label, active, uses, created_by, created_at)
      VALUES (?, ?, ?, 1, 0, NULL, ?)`,
     id(),
-    code,
+    generated,
     "Initial registration code",
     now(),
   );
-  if (!config.registrationAccessCode) {
-    log.info(`Generated a registration access code: ${code}`);
-  }
+  log.info(`Generated a registration access code: ${generated}`);
 }
 
 export function seedAll(log: {

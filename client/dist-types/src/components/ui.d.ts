@@ -1,5 +1,16 @@
 import { type ReactNode } from "react";
 /**
+ * Theme toggle.
+ *
+ * The icon shows the theme you would switch to, drawn in the current text
+ * colour: the style guide reserves gold and salmon for decoration and forbids
+ * them on anything that has to be read. The button carries a label for screen
+ * readers, since the glyph alone is not a name.
+ */
+export declare function ThemeToggle({ className }: {
+    className?: string;
+}): import("react").JSX.Element;
+/**
  * The four-bar brand rule: salmon, gold, blue, navy, in that order. It sits
  * under a page title and replaces a plain divider.
  */

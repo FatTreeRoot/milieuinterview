@@ -779,3 +779,19 @@ tr:last-child td {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Square button holding an icon alone. The accessible name comes from
+   aria-label, since a glyph is not a name. */
+.icon-btn {
+  min-height: 38px;
+  width: 38px;
+  padding: 0;
+  flex: none;
+  color: var(--color-text-muted);
+}
+.icon-btn:hover {
+  color: var(--color-text);
+}
+.icon-btn svg {
+  display: block;
+}

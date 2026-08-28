@@ -1,5 +1,63 @@
 import { useEffect, type ReactNode } from "react";
 import { formatScore } from "@milieu/shared";
+import { useTheme } from "../lib/theme";
+
+/**
+ * Theme toggle.
+ *
+ * The icon shows the theme you would switch to, drawn in the current text
+ * colour: the style guide reserves gold and salmon for decoration and forbids
+ * them on anything that has to be read. The button carries a label for screen
+ * readers, since the glyph alone is not a name.
+ */
+export function ThemeToggle({ className = "" }: { className?: string }) {
+  const { theme, toggle } = useTheme();
+  const goingDark = theme === "light";
+  const label = goingDark ? "Switch to dark theme" : "Switch to light theme";
+
+  return (
+    <button
+      type="button"
+      className={`btn btn--secondary icon-btn ${className}`}
+      onClick={toggle}
+      aria-label={label}
+      title={label}
+    >
+      {goingDark ? (
+        // Moon
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+        </svg>
+      ) : (
+        // Sun
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4.2" />
+          <path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 /**
  * The four-bar brand rule: salmon, gold, blue, navy, in that order. It sits

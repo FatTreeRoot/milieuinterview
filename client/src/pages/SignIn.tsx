@@ -2,8 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
-import { useTheme } from "../lib/theme";
-import { Alert, BrandRule, Field } from "../components/ui";
+import { Alert, BrandRule, Field, ThemeToggle } from "../components/ui";
 import type { CurrentUser } from "../lib/types";
 
 type Mode = "signIn" | "register";
@@ -19,7 +18,6 @@ export function SignIn() {
   const [busy, setBusy] = useState(false);
 
   const { setUser } = useSession();
-  const { theme, toggle } = useTheme();
   const navigate = useNavigate();
 
   const registering = mode === "register";
@@ -153,13 +151,7 @@ export function SignIn() {
           >
             {registering ? "I already have an account" : "Create an account"}
           </button>
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm"
-            onClick={toggle}
-          >
-            {theme === "dark" ? "Light theme" : "Dark theme"}
-          </button>
+          <ThemeToggle />
         </div>
 
         <span className="powered-by">Powered by SNRGY</span>
