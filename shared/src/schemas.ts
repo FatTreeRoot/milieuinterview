@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { INPUT_KINDS, ROLES } from "./types.js";
+import { DEFAULT_MIN_NOTES, INPUT_KINDS, ROLES } from "./types.js";
 import { SCORE_MAX, SCORE_MIN } from "./scoring.js";
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email address");
@@ -40,6 +40,8 @@ export const questionInputSchema = z.object({
   answerKey: z.string().nullable().default(null),
   inputKind: z.enum(INPUT_KINDS).default("text"),
   inputConfig: inputConfigSchema.default({}),
+  // 0 disables the minimum for that question.
+  minNotes: z.number().int().min(0).max(2000).default(DEFAULT_MIN_NOTES),
 });
 
 export const interviewTypeInputSchema = z.object({

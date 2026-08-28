@@ -454,3 +454,92 @@ describe("AI endpoints without a key", () => {
     expect(response.json()).toEqual({ ai: false, email: false });
   });
 });
+
+describe("minimum notes", () => {
+  it("applies the migration's default to every open question", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/types",
+      headers: auth(),
+    });
+    const questions = response
+      .json()
+      ["types"].flatMap(
+        (t: { questions: { inputKind: string; minNotes: number }[] }) =>
+          t.questions,
+      );
+    const open = questions.filter(
+      (q: { inputKind: string }) => q.inputKind !== "yes_no",
+    );
+    expect(open.length).toBeGreaterThan(0);
+    expect(open.every((q: { minNotes: number }) => q.minNotes === 120)).toBe(true);
+  });
+
+  it("exempts the simple yes or no questions", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/types",
+      headers: auth(),
+    });
+    const yesNo = response
+      .json()
+      ["types"].flatMap(
+        (t: { questions: { inputKind: string; minNotes: number }[] }) =>
+          t.questions,
+      )
+      .filter((q: { inputKind: string }) => q.inputKind === "yes_no");
+    expect(yesNo.length).toBeGreaterThan(0);
+    expect(yesNo.every((q: { minNotes: number }) => q.minNotes === 0)).toBe(true);
+  });
+
+  it("keeps a minimum an admin changed", async () => {
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/types",
+      headers: auth(),
+      payload: {
+        name: "Minimum check",
+        description: null,
+        passThreshold: 7.5,
+        questions: [
+          { text: "A long-form question", answerKey: null, inputKind: "text", inputConfig: {}, minNotes: 400 },
+          { text: "A quick check", answerKey: null, inputKind: "yes_no", inputConfig: {}, minNotes: 0 },
+        ],
+      },
+    });
+    expect(created.statusCode).toBe(200);
+    const questions = created.json()["type"].questions;
+    expect(questions[0].minNotes).toBe(400);
+    expect(questions[1].minNotes).toBe(0);
+  });
+
+  it("defaults to 120 when a question does not name one", async () => {
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/types",
+      headers: auth(),
+      payload: {
+        name: "Default check",
+        description: null,
+        passThreshold: 7.5,
+        questions: [{ text: "No minimum given", answerKey: null, inputKind: "text", inputConfig: {} }],
+      },
+    });
+    expect(created.json()["type"].questions[0].minNotes).toBe(120);
+  });
+
+  it("carries the minimum into an interview's frozen snapshot", async () => {
+    const types = await app.inject({ method: "GET", url: "/api/types", headers: auth() });
+    const type = types.json()["types"][0];
+    const started = await app.inject({
+      method: "POST",
+      url: "/api/interviews",
+      headers: auth(),
+      payload: { typeId: type.id, candidateName: "Snapshot check", position: null, interviewerNames: null },
+    });
+    const snapshot = started.json()["interview"].snapshot.questions;
+    expect(
+      snapshot.every((q: { minNotes: number }) => typeof q.minNotes === "number"),
+    ).toBe(true);
+  });
+});

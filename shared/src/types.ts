@@ -44,6 +44,18 @@ export const AI_FEATURES = [
 ] as const;
 export type AiFeature = (typeof AI_FEATURES)[number];
 
+/**
+ * How much the interviewer has to write before moving on.
+ *
+ * The point is to stop a substantive answer being recorded as "good" or
+ * "yes", which leaves the evaluation with nothing to work from and the
+ * document with no record of what was actually said.
+ */
+export const DEFAULT_MIN_NOTES = 120;
+
+/** Simple intake questions are exempt: there is nothing more to write. */
+export const NO_MIN_NOTES = 0;
+
 export type Question = {
   id: string;
   sort: number;
@@ -51,6 +63,8 @@ export type Question = {
   answerKey: string | null;
   inputKind: InputKind;
   inputConfig: InputConfig;
+  /** Characters required in the notes. 0 means no minimum. */
+  minNotes: number;
 };
 
 export type InterviewType = {

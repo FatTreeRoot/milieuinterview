@@ -56,3 +56,14 @@ export function outcomeFor(score: number, threshold: number): Outcome {
 export function formatScore(score: number): string {
   return normalizeScore(score).toFixed(1);
 }
+
+/**
+ * Whether an answer has enough written down to move past it.
+ *
+ * A question with no minimum, or one the interviewer has satisfied, passes.
+ * Whitespace does not count towards the total.
+ */
+export function meetsNoteMinimum(notes: string, minNotes: number): boolean {
+  if (minNotes <= 0) return true;
+  return notes.trim().length >= minNotes;
+}

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import type { InputKind } from "@milieu/shared";
+import { DEFAULT_MIN_NOTES, NO_MIN_NOTES, type InputKind } from "@milieu/shared";
 import { all, get, run, transaction } from "./index.js";
 import { accessCode, id, now } from "../lib/ids.js";
 import { hashPassword } from "../lib/passwords.js";
@@ -15,6 +15,7 @@ type SeedQuestion = {
   answerKey: string | null;
   inputKind: InputKind;
   inputConfig: Record<string, unknown>;
+  minNotes?: number;
 };
 
 type SeedType = {
@@ -55,8 +56,8 @@ export function seedInterviewLibrary(): void {
       type.questions.forEach((question, index) => {
         run(
           `INSERT INTO questions
-             (id, type_id, sort, text, answer_key, input_kind, input_config)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+             (id, type_id, sort, text, answer_key, input_kind, input_config, min_notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           id(),
           typeId,
           index,
@@ -64,6 +65,8 @@ export function seedInterviewLibrary(): void {
           question.answerKey,
           question.inputKind,
           JSON.stringify(question.inputConfig ?? {}),
+          question.minNotes ??
+            (question.inputKind === "yes_no" ? NO_MIN_NOTES : DEFAULT_MIN_NOTES),
         );
       });
     }

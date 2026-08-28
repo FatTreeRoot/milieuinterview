@@ -900,3 +900,20 @@ tr:last-child td {
 .editor-surface > *:first-child {
   margin-top: 0;
 }
+
+/* How far the notes are from the minimum for this question. */
+.note-count {
+  font-size: 12.5px;
+  color: var(--color-text-subtle);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.note-count--short {
+  color: var(--color-warn);
+  font-weight: 600;
+}
+
+/* Started but not yet at the minimum. */
+.jump-dot--short {
+  background: var(--color-warn);
+}

@@ -4,7 +4,15 @@ import { renderCleanedDocument, renderReportDocument } from "../lib/documents.js
 import type { InterviewDetail } from "../lib/interviews.js";
 
 function question(id: string, text: string): Question {
-  return { id, sort: 0, text, answerKey: null, inputKind: "text", inputConfig: {} };
+  return {
+    id,
+    sort: 0,
+    text,
+    answerKey: null,
+    inputKind: "text",
+    inputConfig: {},
+    minNotes: 120,
+  };
 }
 
 function interview(overrides: Partial<InterviewDetail> = {}): InterviewDetail {

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { DEFAULT_PASS_THRESHOLD, INPUT_KINDS, type InputKind } from "@milieu/shared";
+import {
+  DEFAULT_MIN_NOTES,
+  DEFAULT_PASS_THRESHOLD,
+  INPUT_KINDS,
+  type InputKind,
+} from "@milieu/shared";
 import { api, ApiError } from "../lib/api";
 import type { ImportedTypeDraft, InterviewType } from "../lib/types";
 import { Alert, Field, PageHead } from "../components/ui";
@@ -11,6 +16,8 @@ type EditableQuestion = {
   answerKey: string | null;
   inputKind: InputKind;
   inputConfig: Record<string, unknown>;
+  /** Characters the interviewer must write. 0 means no minimum. */
+  minNotes: number;
 };
 
 const KIND_LABELS: Record<InputKind, string> = {
@@ -52,6 +59,7 @@ export function TypeEditor() {
               answerKey: q.answerKey,
               inputKind: q.inputKind,
               inputConfig: q.inputConfig ?? {},
+              minNotes: q.minNotes ?? DEFAULT_MIN_NOTES,
             })),
           );
           setLoaded(true);
@@ -70,6 +78,9 @@ export function TypeEditor() {
           answerKey: q.answerKey,
           inputKind: q.inputKind,
           inputConfig: {},
+          // Imported forms mark their own yes/no questions; those need no
+          // written answer.
+          minNotes: q.inputKind === "yes_no" ? 0 : DEFAULT_MIN_NOTES,
         })),
       );
     }
@@ -108,6 +119,7 @@ export function TypeEditor() {
           answerKey: q.answerKey?.trim() ? q.answerKey : null,
           inputKind: q.inputKind,
           inputConfig: q.inputConfig,
+          minNotes: q.minNotes,
         })),
       };
       if (id) {
@@ -205,7 +217,13 @@ export function TypeEditor() {
           onClick={() =>
             setQuestions((current) => [
               ...current,
-              { text: "", answerKey: null, inputKind: "text", inputConfig: {} },
+              {
+                text: "",
+                answerKey: null,
+                inputKind: "text",
+                inputConfig: {},
+                minNotes: DEFAULT_MIN_NOTES,
+              },
             ])
           }
         >
@@ -274,6 +292,25 @@ export function TypeEditor() {
                     </option>
                   ))}
                 </select>
+              </Field>
+
+              <Field
+                label="Minimum Notes"
+                hint="Characters the interviewer must write before moving on. 0 for none."
+              >
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  max={2000}
+                  step={10}
+                  value={String(question.minNotes)}
+                  onChange={(e) =>
+                    patch(index, {
+                      minNotes: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                />
               </Field>
 
               {question.inputKind === "checkbox_list" ? (

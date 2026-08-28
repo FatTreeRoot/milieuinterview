@@ -11,6 +11,7 @@ function toQuestion(row: Record<string, unknown>): Question {
     answerKey: (row["answer_key"] as string | null) ?? null,
     inputKind: row["input_kind"] as InputKind,
     inputConfig: parseJson<InputConfig>(row["input_config"], {}),
+    minNotes: (row["min_notes"] as number) ?? 0,
   };
 }
 
@@ -61,6 +62,7 @@ export type TypeInput = {
     answerKey: string | null;
     inputKind: InputKind;
     inputConfig: InputConfig;
+    minNotes: number;
   }[];
 };
 
@@ -95,8 +97,8 @@ function writeQuestions(typeId: string, questions: TypeInput["questions"]): void
   questions.forEach((question, index) => {
     run(
       `INSERT INTO questions
-         (id, type_id, sort, text, answer_key, input_kind, input_config)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (id, type_id, sort, text, answer_key, input_kind, input_config, min_notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       question.id ?? id(),
       typeId,
       index,
@@ -104,6 +106,7 @@ function writeQuestions(typeId: string, questions: TypeInput["questions"]): void
       question.answerKey,
       question.inputKind,
       JSON.stringify(question.inputConfig ?? {}),
+      question.minNotes,
     );
   });
 }
@@ -151,6 +154,7 @@ export function duplicateType(typeId: string): string {
       answerKey: q.answerKey,
       inputKind: q.inputKind,
       inputConfig: q.inputConfig,
+      minNotes: q.minNotes,
     })),
   });
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { InputConfig, Question } from "@milieu/shared";
+import { meetsNoteMinimum } from "@milieu/shared";
 import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
 import type { InterviewDetail, InterviewResponse } from "../lib/types";
@@ -362,6 +363,19 @@ export function InterviewSession() {
   }, [questions.length]);
 
   async function finish() {
+    // Guarded here as well as on the button: finishing is reachable from two
+    // places, and a short answer leaves the evaluation nothing to judge.
+    if (shortIndexes.length > 0) {
+      setIndex(shortIndexes[0] as number);
+      setError(
+        shortIndexes.length === 1
+          ? `Question ${(shortIndexes[0] as number) + 1} still needs more written before you can finish.`
+          : `${shortIndexes.length} questions still need more written before you can finish: ${shortIndexes
+              .map((i) => i + 1)
+              .join(", ")}.`,
+      );
+      return;
+    }
     setFinishing(true);
     setError(null);
     try {
@@ -393,6 +407,16 @@ export function InterviewSession() {
   const current = responses.get(question.id) ?? emptyResponse(question.id);
   const answered = responseList.filter((r) => r.notes.trim()).length;
   const next = questions[index + 1];
+
+  // A question is short until its notes reach the minimum set on it. Simple
+  // intake questions carry a minimum of 0 and are never short.
+  const written = current.notes.trim().length;
+  const currentIsShort = !meetsNoteMinimum(current.notes, question.minNotes);
+  const shortIndexes = questions
+    .map((q, i) =>
+      meetsNoteMinimum(responses.get(q.id)?.notes ?? "", q.minNotes) ? -1 : i,
+    )
+    .filter((i) => i >= 0);
 
   return (
     <div>
@@ -464,7 +488,19 @@ export function InterviewSession() {
               onChange={(e) => onNotesChange(question, e.target.value)}
               // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
+              aria-describedby={question.minNotes > 0 ? "note-minimum" : undefined}
             />
+
+            {question.minNotes > 0 ? (
+              <div
+                id="note-minimum"
+                className={`note-count ${currentIsShort ? "note-count--short" : ""}`}
+              >
+                {currentIsShort
+                  ? `${question.minNotes - written} more characters needed`
+                  : `${written} characters`}
+              </div>
+            ) : null}
 
             {suggestion ? (
               <div className="suggestion">
@@ -542,6 +578,12 @@ export function InterviewSession() {
                 type="button"
                 className="btn btn--primary"
                 onClick={() => setIndex((i) => i + 1)}
+                disabled={currentIsShort}
+                title={
+                  currentIsShort
+                    ? `Write at least ${question.minNotes} characters first`
+                    : undefined
+                }
               >
                 Next Question
               </button>
@@ -550,7 +592,12 @@ export function InterviewSession() {
                 type="button"
                 className="btn btn--primary"
                 onClick={() => void finish()}
-                disabled={finishing}
+                disabled={finishing || shortIndexes.length > 0}
+                title={
+                  shortIndexes.length > 0
+                    ? "Some questions still need more written"
+                    : undefined
+                }
               >
                 {finishing ? "Processing" : "Finish Interview"}
               </button>
@@ -596,9 +643,11 @@ export function InterviewSession() {
                       className={`jump-dot ${
                         response?.redFlag
                           ? "jump-dot--flagged"
-                          : response?.notes.trim()
+                          : meetsNoteMinimum(response?.notes ?? "", q.minNotes)
                             ? "jump-dot--answered"
-                            : ""
+                            : response?.notes.trim()
+                              ? "jump-dot--short"
+                              : ""
                       }`}
                     />
                     <span
@@ -620,10 +669,21 @@ export function InterviewSession() {
             type="button"
             className="btn btn--secondary btn--sm"
             onClick={() => void finish()}
-            disabled={finishing}
+            disabled={finishing || shortIndexes.length > 0}
+            title={
+              shortIndexes.length > 0
+                ? "Some questions still need more written"
+                : undefined
+            }
           >
             {finishing ? "Processing" : "Finish Interview"}
           </button>
+          {shortIndexes.length > 0 ? (
+            <div className="subtle">
+              {shortIndexes.length} question
+              {shortIndexes.length === 1 ? "" : "s"} still below the minimum.
+            </div>
+          ) : null}
         </aside>
       </div>
 

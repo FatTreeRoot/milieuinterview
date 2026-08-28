@@ -144,4 +144,16 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    name: "0002_question_min_notes",
+    sql: `
+      -- How many characters the interviewer must write before moving on.
+      -- Simple intake questions are exempt: a licence check has nothing more
+      -- to say, and demanding a paragraph would only invite padding.
+      ALTER TABLE questions
+        ADD COLUMN min_notes INTEGER NOT NULL DEFAULT 120;
+
+      UPDATE questions SET min_notes = 0 WHERE input_kind = 'yes_no';
+    `,
+  },
 ];
