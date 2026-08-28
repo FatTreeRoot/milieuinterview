@@ -6,7 +6,7 @@ import {
   finalScoreSchema,
   saveDraftSchema,
   startInterviewSchema,
-  suggestionRequestSchema,
+  liveNoteRequestSchema,
 } from "@milieu/shared";
 import { badRequest, parseBody, requireUser } from "../lib/http.js";
 import { audit } from "../lib/audit.js";
@@ -21,7 +21,12 @@ import {
   setFinalScore,
   startInterview,
 } from "../lib/interviews.js";
-import { cleanUpNotes, evaluateInterview, suggestFollowUp } from "../ai/operations.js";
+import {
+  cleanUpNotes,
+  detectConcern,
+  evaluateInterview,
+  suggestFollowUp,
+} from "../ai/operations.js";
 import { renderCleanedDocument, renderReportDocument } from "../lib/documents.js";
 
 const idParams = z.object({ id: z.string().min(1) });
@@ -63,17 +68,37 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true, savedAt: new Date().toISOString() };
   });
 
-  app.post("/api/interviews/:id/suggest", async (request) => {
-    requireUser(request);
-    const body = parseBody(suggestionRequestSchema, request.body);
+  /** Resolves the question a live call is about, or rejects the call. */
+  function liveQuestion(body: { interviewId: string; questionId: string }) {
     const interview = getInterview(body.interviewId);
     const question = interview.snapshot.questions.find(
       (q) => q.id === body.questionId,
     );
     if (!question) throw badRequest("That question is not part of this interview");
+    return { interview, question };
+  }
+
+  app.post("/api/interviews/:id/suggest", async (request) => {
+    requireUser(request);
+    const body = parseBody(liveNoteRequestSchema, request.body);
+    const { interview, question } = liveQuestion(body);
 
     const suggestion = await suggestFollowUp(question, body.notes, interview.id);
     return { suggestion };
+  });
+
+  /**
+   * The concern watch. Runs alongside the follow-up suggestion on every live
+   * call, because the two look for opposite things and a troubling answer
+   * usually trips only this one.
+   */
+  app.post("/api/interviews/:id/concern", async (request) => {
+    requireUser(request);
+    const body = parseBody(liveNoteRequestSchema, request.body);
+    const { interview, question } = liveQuestion(body);
+
+    const concern = await detectConcern(question, body.notes, interview.id);
+    return { concern };
   });
 
   /**

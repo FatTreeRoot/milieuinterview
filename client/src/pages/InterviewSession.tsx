@@ -11,16 +11,26 @@ import {
   readLocalDraft,
   writeLocalDraft,
 } from "../lib/draft";
+import { claimLiveCall, freshGate, type LiveGate } from "../lib/live-gate";
 import { Alert, BrandRule, Modal } from "../components/ui";
 
 /**
- * Live follow-up suggestions cost money per call, so they are gated hard:
- * the interviewer has to have stopped typing, written a meaningful amount
- * since the last call, and left enough time since the last one.
+ * The live AI calls cost money each, so they are gated: the interviewer has to
+ * have stopped typing, written a meaningful amount since the last call, and
+ * left enough time since the last one.
  */
-const SUGGEST_IDLE_MS = 5000;
+const LIVE_IDLE_MS = 5000;
+
 const SUGGEST_MIN_NEW_CHARS = 80;
 const SUGGEST_COOLDOWN_MS = 20000;
+
+/**
+ * The concern watch is gated looser than the follow-up. Something troubling is
+ * often short ("grabbed her arm to move her"), and where a missed follow-up
+ * costs a question, a missed concern costs the thing the interview is for.
+ */
+const CONCERN_MIN_NEW_CHARS = 40;
+const CONCERN_COOLDOWN_MS = 10000;
 
 const AUTOSAVE_MS = 4000;
 
@@ -173,6 +183,7 @@ export function InterviewSession() {
     "saved",
   );
   const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [concern, setConcern] = useState<string | null>(null);
   const [flagPrompt, setFlagPrompt] = useState<string | null>(null);
   const [flagNote, setFlagNote] = useState("");
   const [finishing, setFinishing] = useState(false);
@@ -180,9 +191,15 @@ export function InterviewSession() {
   const [recovered, setRecovered] = useState(false);
 
   const dirty = useRef(false);
-  const lastSuggestAt = useRef(0);
-  const lastSuggestChars = useRef(0);
-  const suggestTimer = useRef<number | null>(null);
+  const suggestGate = useRef<LiveGate>(freshGate());
+  const concernGate = useRef<LiveGate>(freshGate());
+  const liveTimer = useRef<number | null>(null);
+  /**
+   * Bumped on every move between questions. A reply that arrives after the
+   * interviewer has moved on belongs to the question they left, and showing
+   * it against the one they are on now would point at the wrong answer.
+   */
+  const liveGeneration = useRef(0);
 
   const questions = interview?.snapshot.questions ?? [];
   const question = questions[index];
@@ -298,17 +315,22 @@ export function InterviewSession() {
     [],
   );
 
-  // --- Live follow-up suggestion ---
+  // --- Live AI: the follow-up suggestion and the concern watch ---
 
   const requestSuggestion = useCallback(
     async (target: Question, notes: string) => {
       if (!capabilities.ai) return;
-      const now = Date.now();
-      if (now - lastSuggestAt.current < SUGGEST_COOLDOWN_MS) return;
-      if (notes.length - lastSuggestChars.current < SUGGEST_MIN_NEW_CHARS) return;
-
-      lastSuggestAt.current = now;
-      lastSuggestChars.current = notes.length;
+      if (
+        !claimLiveCall(
+          suggestGate,
+          notes,
+          SUGGEST_MIN_NEW_CHARS,
+          SUGGEST_COOLDOWN_MS,
+        )
+      ) {
+        return;
+      }
+      const generation = liveGeneration.current;
       try {
         const result = await api.post<{ suggestion: string | null }>(
           `/api/interviews/${id}/suggest`,
@@ -316,9 +338,41 @@ export function InterviewSession() {
         );
         // Silence is the normal answer, so nothing is shown unless there is
         // something worth saying.
-        if (result.suggestion) setSuggestion(result.suggestion);
+        if (result.suggestion && liveGeneration.current === generation) {
+          setSuggestion(result.suggestion);
+        }
       } catch {
         // A missed suggestion is not worth telling the interviewer about.
+      }
+    },
+    [capabilities.ai, id],
+  );
+
+  const requestConcern = useCallback(
+    async (target: Question, notes: string) => {
+      if (!capabilities.ai) return;
+      if (
+        !claimLiveCall(
+          concernGate,
+          notes,
+          CONCERN_MIN_NEW_CHARS,
+          CONCERN_COOLDOWN_MS,
+        )
+      ) {
+        return;
+      }
+      const generation = liveGeneration.current;
+      try {
+        const result = await api.post<{ concern: string | null }>(
+          `/api/interviews/${id}/concern`,
+          { interviewId: id, questionId: target.id, notes },
+        );
+        if (result.concern && liveGeneration.current === generation) {
+          setConcern(result.concern);
+        }
+      } catch {
+        // Same as the suggestion: a dropped call is not the interviewer's
+        // problem to deal with mid-conversation.
       }
     },
     [capabilities.ai, id],
@@ -327,21 +381,26 @@ export function InterviewSession() {
   const onNotesChange = useCallback(
     (target: Question, notes: string) => {
       update(target.id, { notes });
-      if (suggestTimer.current) window.clearTimeout(suggestTimer.current);
-      suggestTimer.current = window.setTimeout(() => {
+      if (liveTimer.current) window.clearTimeout(liveTimer.current);
+      // Both calls share the one idle timer but keep their own gates, so the
+      // looser concern watch can fire on a note the follow-up ignores.
+      liveTimer.current = window.setTimeout(() => {
         void requestSuggestion(target, notes);
-      }, SUGGEST_IDLE_MS);
+        void requestConcern(target, notes);
+      }, LIVE_IDLE_MS);
     },
-    [requestSuggestion, update],
+    [requestConcern, requestSuggestion, update],
   );
 
-  // Moving on clears the previous question's suggestion and its counters.
+  // Moving on clears the previous question's prompts and their counters.
   useEffect(() => {
     setSuggestion(null);
+    setConcern(null);
     setShowKey(false);
-    lastSuggestChars.current = 0;
-    lastSuggestAt.current = 0;
-    if (suggestTimer.current) window.clearTimeout(suggestTimer.current);
+    suggestGate.current = freshGate();
+    concernGate.current = freshGate();
+    liveGeneration.current += 1;
+    if (liveTimer.current) window.clearTimeout(liveTimer.current);
   }, [index]);
 
   // --- Keyboard navigation ---
@@ -525,6 +584,41 @@ export function InterviewSession() {
                 ) : null}
               </>
             )}
+
+            {concern ? (
+              <div className="concern">
+                <div style={{ flex: 1 }}>
+                  <div className="label">Worth probing</div>
+                  {concern}
+                </div>
+                <div className="concern-actions">
+                  {current.redFlag ? null : (
+                    <button
+                      type="button"
+                      className="btn btn--destructive btn--sm"
+                      onClick={() => {
+                        // Prefilled, not written: the interviewer still has to
+                        // confirm, and can edit the wording, before anything
+                        // lands on the record.
+                        setFlagNote(concern);
+                        setFlagPrompt(question.id);
+                        setConcern(null);
+                      }}
+                    >
+                      Flag It
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => setConcern(null)}
+                    aria-label="Dismiss concern"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {suggestion ? (
               <div className="suggestion">

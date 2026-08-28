@@ -75,7 +75,12 @@ export const saveDraftSchema = z.object({
   durationSeconds: z.number().int().min(0).default(0),
 });
 
-export const suggestionRequestSchema = z.object({
+/**
+ * The live calls made while the interviewer types. Both the follow-up
+ * suggestion and the concern watch send the same thing: where they are and
+ * what has been written so far.
+ */
+export const liveNoteRequestSchema = z.object({
   interviewId: z.string().min(1),
   questionId: z.string().min(1),
   notes: z.string().min(1),

@@ -58,10 +58,22 @@ describe("estimateCost", () => {
     expect(cached).toBeCloseTo(0.02, 5);
   });
 
-  it("counts cache writes at the full input rate", () => {
+  it("counts cache writes at 1.25x the input rate", () => {
     expect(
       estimateCost("claude-haiku-4-5", { cache_creation_input_tokens: 1_000_000 }),
-    ).toBeCloseTo(1, 5);
+    ).toBeCloseTo(1.25, 5);
+  });
+
+  /**
+   * The reason the write premium has to be priced: a cache nothing reads back
+   * costs more than never caching at all, so it must not look free in Settings.
+   */
+  it("makes an unread cache write cost more than plain input", () => {
+    const written = estimateCost("claude-sonnet-5", {
+      cache_creation_input_tokens: 100_000,
+    });
+    const plain = estimateCost("claude-sonnet-5", { input_tokens: 100_000 });
+    expect(written).toBeGreaterThan(plain);
   });
 
   it("returns zero for a model it does not know rather than guessing", () => {

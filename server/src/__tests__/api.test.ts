@@ -446,6 +446,54 @@ describe("AI endpoints without a key", () => {
     expect(response.json()["error"]).toMatch(/ANTHROPIC_API_KEY/);
   });
 
+  it("routes the concern watch and rejects it the same way", async () => {
+    const interviews = await app.inject({
+      method: "GET",
+      url: "/api/interviews",
+      headers: auth(),
+    });
+    const interview = interviews.json()["interviews"][0];
+    const question = await app.inject({
+      method: "GET",
+      url: `/api/interviews/${interview.id}`,
+      headers: auth(),
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/interviews/${interview.id}/concern`,
+      headers: auth(),
+      payload: {
+        interviewId: interview.id,
+        questionId: question.json()["interview"].snapshot.questions[0].id,
+        notes: "Said he held her arm until she stopped shouting.",
+      },
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()["error"]).toMatch(/ANTHROPIC_API_KEY/);
+  });
+
+  it("refuses a concern call for a question the interview does not have", async () => {
+    const interviews = await app.inject({
+      method: "GET",
+      url: "/api/interviews",
+      headers: auth(),
+    });
+    const interview = interviews.json()["interviews"][0];
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/interviews/${interview.id}/concern`,
+      headers: auth(),
+      payload: {
+        interviewId: interview.id,
+        questionId: "not-a-question-in-this-interview",
+        notes: "Some notes.",
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
   it("reports which optional features are switched off", async () => {
     const response = await app.inject({
       method: "GET",

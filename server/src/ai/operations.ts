@@ -10,10 +10,12 @@ import {
 } from "./client.js";
 import {
   CLEANUP_SYSTEM,
+  CONCERN_SYSTEM,
   EVALUATION_SYSTEM,
   FOLLOWUP_SYSTEM,
   TYPE_IMPORT_SYSTEM,
   cleanupUserMessage,
+  concernUserMessage,
   evaluationUserMessage,
   followupUserMessage,
   interviewPrefix,
@@ -21,9 +23,23 @@ import {
 } from "./prompts.js";
 
 /**
- * System blocks are ordered stable-first and the shared prefix is marked
- * cacheable, so repeated calls during one interview re-read it from cache
- * instead of paying full input price each time.
+ * System blocks, ordered stable-first so the shared prefix can be one cache
+ * entry across the features that run close enough together to reuse it.
+ *
+ * Measured token counts, which decide whether the marker does anything at all:
+ * the minimum cacheable prefix is 4096 tokens on Haiku 4.5 and 1024 on Sonnet
+ * 5, and stablePrefix is 964 tokens on Haiku, 1359 on Sonnet.
+ *
+ * So the marker is inert for the two live calls, which run on Haiku, and no
+ * rearranging fixes that; their whole prompt is under 1600 tokens. It is left
+ * in place because it costs nothing and becomes live if they ever move to a
+ * model with a lower minimum. On Sonnet it does work, and cleanup and the
+ * evaluation run seconds apart, so the second of them can read what the first
+ * wrote.
+ *
+ * The per-interview block is deliberately NOT marked. Only the evaluation
+ * sends one and it runs once, so a cache written there could never be read,
+ * and an unread write costs 1.25x what not caching costs.
  */
 function systemBlocks(instructions: string, perInterview?: string) {
   const blocks: {
@@ -35,11 +51,7 @@ function systemBlocks(instructions: string, perInterview?: string) {
     { type: "text", text: instructions },
   ];
   if (perInterview) {
-    blocks.push({
-      type: "text",
-      text: perInterview,
-      cache_control: { type: "ephemeral" },
-    });
+    blocks.push({ type: "text", text: perInterview });
   }
   return blocks;
 }
@@ -66,6 +78,37 @@ export async function suggestFollowUp(
 
   const text = textOf(message);
   if (!text || /^none\b/i.test(text)) return null;
+  return applyHouseStyle(text);
+}
+
+/**
+ * A single concern raised from the notes so far, or null for silence.
+ *
+ * Separate from the follow-up suggestion on purpose. That one hunts for a gap,
+ * an absence a question would fill, so a troubling answer that is complete and
+ * specific reads to it as nothing to ask about. This one is looking for the
+ * opposite: content that is present and carries risk.
+ *
+ * Nothing here writes to the interview record. The interviewer decides whether
+ * a concern becomes a flag, so a false positive costs a glance, not a mark
+ * against a candidate.
+ */
+export async function detectConcern(
+  question: Question,
+  notes: string,
+  interviewId: string,
+): Promise<string | null> {
+  const model = MODELS.concern_detection;
+  const message = await anthropic().messages.create({
+    model,
+    max_tokens: 100,
+    system: systemBlocks(CONCERN_SYSTEM),
+    messages: [{ role: "user", content: concernUserMessage(question, notes) }],
+  });
+  recordUsage("concern_detection", model, message.usage as Usage, interviewId);
+
+  const text = textOf(message);
+  if (!text || /^none/i.test(text)) return null;
   return applyHouseStyle(text);
 }
 

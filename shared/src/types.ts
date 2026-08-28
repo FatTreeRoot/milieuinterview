@@ -42,6 +42,7 @@ export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 /** Which AI feature spent the tokens, for the cost breakdown in Settings. */
 export const AI_FEATURES = [
   "followup_suggestion",
+  "concern_detection",
   "cleanup",
   "evaluation",
   "type_import",

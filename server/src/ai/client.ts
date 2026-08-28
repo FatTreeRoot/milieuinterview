@@ -8,19 +8,34 @@ import { HttpError } from "../lib/http.js";
 /**
  * Model choice per feature, picked for cost.
  *
- * The live follow-up suggestion fires repeatedly during an interview and only
- * has to spot an obvious gap, so it runs on the cheapest model. The cleanup
- * pass and the evaluation run once each and carry the judgement that matters,
- * so they get a stronger one.
+ * The two live calls fire repeatedly during an interview and each only has to
+ * spot one obvious thing, a gap or a risk, so they run on the cheapest model.
+ * The cleanup pass and the evaluation run once each and carry the judgement
+ * that matters, so they get a stronger one.
+ *
+ * Haiku stays the right choice for the live calls even though its prompt
+ * cannot be cached. Sonnet 5 would cache, but it also reads the same text as
+ * ~37% more tokens (stablePrefix: 1359 against Haiku's 964), and the uncached
+ * remainder at twice the input price more than eats the saving. Measured, a
+ * live call is $0.0015 on Haiku against $0.0017 on Sonnet 5 with the cache
+ * working.
  */
 export const MODELS = {
   followup_suggestion: "claude-haiku-4-5",
+  concern_detection: "claude-haiku-4-5",
   cleanup: "claude-sonnet-5",
   evaluation: "claude-sonnet-5",
   type_import: "claude-sonnet-5",
 } as const satisfies Record<AiFeature, string>;
 
-/** USD per million tokens, for the spend estimate shown in Settings. */
+/**
+ * USD per million tokens, for the spend estimate shown in Settings.
+ *
+ * A cache read costs a tenth of the input price; a cache write costs 1.25x it,
+ * which is why writing a cache nothing ever reads is worse than not caching.
+ */
+const CACHE_WRITE_MULTIPLIER = 1.25;
+
 const PRICING: Record<string, { input: number; output: number; cached: number }> = {
   "claude-haiku-4-5": { input: 1, output: 5, cached: 0.1 },
   "claude-sonnet-5": { input: 2, output: 10, cached: 0.2 },
@@ -50,9 +65,13 @@ export function estimateCost(model: string, usage: Usage): number {
   const price = PRICING[model];
   if (!price) return 0;
   const cached = usage.cache_read_input_tokens ?? 0;
-  const fresh = (usage.input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+  const written = usage.cache_creation_input_tokens ?? 0;
+  const fresh = usage.input_tokens ?? 0;
   return (
-    (fresh * price.input + cached * price.cached + (usage.output_tokens ?? 0) * price.output) /
+    (fresh * price.input +
+      written * price.input * CACHE_WRITE_MULTIPLIER +
+      cached * price.cached +
+      (usage.output_tokens ?? 0) * price.output) /
     1_000_000
   );
 }

@@ -66,6 +66,28 @@ export function followupUserMessage(question: Question, notes: string): string {
   return `Question being asked:\n${question.text}${key}\n\nNotes so far:\n${notes}`;
 }
 
+export const CONCERN_SYSTEM = `${HOUSE_RULES}
+
+You watch an interviewer's notes as they type and raise a concern when the candidate has described something that would put a person supported at risk.
+
+Raise one only for what the candidate says they themselves did, said, or would do. The kinds of thing that matter here: rough handling or physical force, a boundary crossed with a person supported or their family, a disclosure of abuse they did not pass on, a safeguarding or reporting duty ignored, a punitive or controlling response to behaviour, working around a care plan or their supervision, medication handled outside protocol, or an account of their own record that does not hold together.
+
+Silence is the default. Reply with exactly NONE when the notes show none of that.
+
+A weak, thin, vague or unimpressive answer is not a concern. Neither is inexperience, nerves, an unfinished sentence, or a candidate describing something troubling that someone else did. The evaluation at the end of the interview judges how well they answered. Your only job is the thing an HR reader would later wish had been asked about while the candidate was still in the room.
+
+Never diagnose the candidate, never apply a label to them, and never say or imply whether they should be hired. Do not go past what the notes say. If it reads two ways, one of them fine, stay silent.
+
+When you do raise one, reply with a single sentence: what they said, and what to ask to clarify it. No preamble, under 30 words.`;
+
+export function concernUserMessage(question: Question, notes: string): string {
+  return `Question being asked:
+${question.text}
+
+Notes so far:
+${notes}`;
+}
+
 export const CLEANUP_SYSTEM = `${HOUSE_RULES}
 
 You tidy an interviewer's live notes into a readable record.
