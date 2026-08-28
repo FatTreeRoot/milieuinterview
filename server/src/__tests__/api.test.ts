@@ -5,6 +5,7 @@
  * reads its configuration when its modules load, and ESM evaluates imports
  * before any statement here could run.
  */
+import { readFileSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../app.js";
@@ -456,40 +457,57 @@ describe("AI endpoints without a key", () => {
 });
 
 describe("minimum notes", () => {
-  it("applies the migration's default to every open question", async () => {
-    const response = await app.inject({
-      method: "GET",
-      url: "/api/types",
-      headers: auth(),
-    });
-    const questions = response
-      .json()
-      ["types"].flatMap(
-        (t: { questions: { inputKind: string; minNotes: number }[] }) =>
-          t.questions,
-      );
-    const open = questions.filter(
-      (q: { inputKind: string }) => q.inputKind !== "yes_no",
+  type SeedQuestion = { text: string; inputKind: string; minNotes: number };
+  const library = JSON.parse(
+    readFileSync(
+      new URL("../data/interview-library.json", import.meta.url),
+      "utf8",
+    ),
+  ) as { questions: SeedQuestion[] }[];
+
+  it("gives every question a minimum of either the default or none", () => {
+    // Open questions carry 120 unless they were deliberately exempted in the
+    // seed. Nothing should ever hold some third, unexplained value.
+    const values = new Set(
+      library.flatMap((t) => t.questions.map((q) => q.minNotes)),
     );
-    expect(open.length).toBeGreaterThan(0);
-    expect(open.every((q: { minNotes: number }) => q.minNotes === 120)).toBe(true);
+    expect([...values].sort((a, b) => a - b)).toEqual([0, 120]);
   });
 
-  it("exempts the simple yes or no questions", async () => {
-    const response = await app.inject({
-      method: "GET",
-      url: "/api/types",
-      headers: auth(),
-    });
-    const yesNo = response
-      .json()
-      ["types"].flatMap(
-        (t: { questions: { inputKind: string; minNotes: number }[] }) =>
-          t.questions,
-      )
-      .filter((q: { inputKind: string }) => q.inputKind === "yes_no");
+  it("still requires notes on the large majority of questions", () => {
+    // The exemptions are for factual and logistical questions. If this ever
+    // drifts towards most questions being exempt, the feature has been
+    // hollowed out.
+    const all = library.flatMap((t) => t.questions);
+    const required = all.filter((q) => q.minNotes > 0);
+    expect(required.length / all.length).toBeGreaterThan(0.7);
+  });
+
+  it("exempts the factual and closing questions", () => {
+    const exempt = library
+      .flatMap((t) => t.questions)
+      .filter((q) => q.minNotes === 0)
+      .map((q) => q.text.toLowerCase());
+
+    for (const phrase of [
+      "when can you start",
+      "class 5 license",
+      "how did you hear about our agency",
+      "still interested in the position",
+    ]) {
+      expect(
+        exempt.some((text) => text.includes(phrase)),
+        `expected a question containing "${phrase}" to be exempt`,
+      ).toBe(true);
+    }
+  });
+
+  it("exempts every question the forms marked as yes or no", () => {
+    const yesNo = library
+      .flatMap((t) => t.questions)
+      .filter((q) => q.inputKind === "yes_no");
     expect(yesNo.length).toBeGreaterThan(0);
-    expect(yesNo.every((q: { minNotes: number }) => q.minNotes === 0)).toBe(true);
+    expect(yesNo.every((q) => q.minNotes === 0)).toBe(true);
   });
 
   it("keeps a minimum an admin changed", async () => {
